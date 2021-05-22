@@ -114,7 +114,7 @@ CREATE TABLE ContactSocials (
 
 CREATE TABLE Labels (
   userId INT NOT NULL,
-  labelId INT PRIMARY KEY,
+  labelId BIGSERIAL PRIMARY KEY,
   labelName VARCHAR(150),
   createdAt DATE DEFAULT NOW(),
   modifiedAt DATE,
