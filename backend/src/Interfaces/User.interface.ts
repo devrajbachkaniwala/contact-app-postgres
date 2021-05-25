@@ -1,12 +1,22 @@
 export interface IUser {
     userId: number;
-    username: string;
+    userName: string;
     email: string;
-    userPhoto?: string;
-    createdAt?: string;
-    modifiedAt?: string;
+    userPhoto?: string | null;
+    isActive?: boolean | null;
+    createdAt?: Date | null;
+    modifiedAt?: Date | null;
 }
 
-export interface IUserLogin extends IUser {
+export interface ICreateUser extends IUser {
+    password: string;
+}
+
+export interface IUpdateUser extends ICreateUser {
+    
+}
+
+export interface ILoginUser {
+    email: string;
     password: string;
 }

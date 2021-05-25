@@ -28,4 +28,5 @@ class App {
     }
 }
 
-export default App; */
+export default App; */ 
+//# sourceMappingURL=App.js.map
