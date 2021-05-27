@@ -2,15 +2,11 @@ import express from 'express';
 import { config } from 'dotenv';
 import cors from 'cors';
 import bodyParser from 'body-parser';
-import User from './src/class/user.class';
 import { ICreateUser } from './src/interfaces/user.interface';
 import { IContact } from './src/interfaces/Contact.interface';
-import Contact from './src/class/Contact.class';
 import { ILabel } from './src/interfaces/Label.interface';
-import Label from './src/class/Label.class';
-import { IContactLabel } from './src/interfaces/ContactLabel.interface';
-import ContactLabel from './src/class/ContactLabel.class';
-import ContactCompany from './src/class/ContactCompany.class';
+import { IContactLabel } from './src/interfaces/contact-label.interface';
+import { IContactCompany } from './src/interfaces/contact-company.interface';
 
 config();
 
@@ -45,7 +41,7 @@ app.get('/', (req: express.Request, res: express.Response) => {
     } */
     //Contact.create(36, contact).then( res => console.log(res), err => console.log(err));
     //Contact.list(37).then( res => console.log(res), err => console.log(err));
-    //Contact.get(37, 20).then( res => console.log(res), err => console.log(err));
+    //Contact.get(37, 21).then( res => console.log(res), err => console.log(err));
     //Contact.update(37, contact).then( res => console.log(res), err => console.log(err));
     //Contact.delete(37, 22).then( res => console.log(res), err => console.log(err));
     
@@ -68,7 +64,15 @@ app.get('/', (req: express.Request, res: express.Response) => {
     //ContactLabel.create(23, 2).then(res => console.log(res), err => console.log(err));
     //ContactLabel.delete(20, 1).then(res => console.log(res), err => console.log(err));
 
-    ContactCompany.get(37, 20).then(res => console.log(res), err => console.log(err));
+    const contactCompany: IContactCompany = {
+        companyId: 4,
+        company: 'NewCompany',
+        jobTitle: 'CEO',
+        department: 'Manager'
+    }
+    //ContactCompany.create(37, 23, contactCompany).then(res => console.log(res), err => console.log(err));
+    //ContactCompany.list(37, 1).then(res => console.log(res), err => console.log(err));
+    //ContactCompany.get(37, 20).then(res => console.log(res), err => console.log(err));
 
     res.send('Hello from server');
 });

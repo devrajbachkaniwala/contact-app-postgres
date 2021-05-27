@@ -1,5 +1,5 @@
 import { pool } from "../database/db";
-import { IContactLabel } from "../interfaces/ContactLabel.interface";
+import { IContactLabel } from "../interfaces/contact-label.interface";
 
 export default class ContactLabel {
     //Get list of contactId of a particular labelId that belongs to a user

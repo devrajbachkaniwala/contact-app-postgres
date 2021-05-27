@@ -7,7 +7,6 @@ const express_1 = __importDefault(require("express"));
 const dotenv_1 = require("dotenv");
 const cors_1 = __importDefault(require("cors"));
 const body_parser_1 = __importDefault(require("body-parser"));
-const ContactCompany_class_1 = __importDefault(require("./src/class/ContactCompany.class"));
 dotenv_1.config();
 const app = express_1.default();
 const PORT = process.env.PORT;
@@ -37,7 +36,7 @@ app.get('/', (req, res) => {
     } */
     //Contact.create(36, contact).then( res => console.log(res), err => console.log(err));
     //Contact.list(37).then( res => console.log(res), err => console.log(err));
-    //Contact.get(37, 20).then( res => console.log(res), err => console.log(err));
+    //Contact.get(37, 21).then( res => console.log(res), err => console.log(err));
     //Contact.update(37, contact).then( res => console.log(res), err => console.log(err));
     //Contact.delete(37, 22).then( res => console.log(res), err => console.log(err));
     /* const label: ILabel = {
@@ -55,7 +54,15 @@ app.get('/', (req, res) => {
     //ContactLabel.list(36, 23).then(res => console.log(res), err => console.log(err));
     //ContactLabel.create(23, 2).then(res => console.log(res), err => console.log(err));
     //ContactLabel.delete(20, 1).then(res => console.log(res), err => console.log(err));
-    ContactCompany_class_1.default.get(37, 20).then(res => console.log(res), err => console.log(err));
+    const contactCompany = {
+        companyId: 4,
+        company: 'NewCompany',
+        jobTitle: 'CEO',
+        department: 'Manager'
+    };
+    //ContactCompany.create(37, 23, contactCompany).then(res => console.log(res), err => console.log(err));
+    //ContactCompany.list(37, 1).then(res => console.log(res), err => console.log(err));
+    //ContactCompany.get(37, 20).then(res => console.log(res), err => console.log(err));
     res.send('Hello from server');
 });
 app.listen(PORT, () => console.log(`Server started at ${PORT}`));

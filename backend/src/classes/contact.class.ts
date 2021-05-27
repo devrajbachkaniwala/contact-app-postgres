@@ -1,3 +1,4 @@
+import { QueryResult } from "pg";
 import { pool } from "../database/db";
 import { IContact } from "../interfaces/Contact.interface";
 
@@ -40,10 +41,34 @@ export default class Contact {
 
     static async delete(userId: number, contactId: number): Promise<{ message: string}> {
         try {
+            const query: RDBQuery = new RDBQuery();
+            query.where('userId', '=', 1).where('userId', '=', 2, true);
            const contact = (await pool.query("DELETE FROM Contacts WHERE Contacts.userId = $1 AND Contacts.contactId = $2", [ userId, contactId ])).rows;
            return (contact.length == 0) ? { message : 'Contact deleted'} : { message : 'Failed to delete contact'};
         } catch(err) {
            throw err;
         }
      }
+}
+
+export class RDBQuery {
+    private _action: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' = 'SELECT';
+    private _where = '';
+    private _whereParams: any[] = [];
+
+    execute(): Promise<QueryResult<any>> {
+        let query: string = this._action;
+
+        return pool.query(query, []);
+    }
+
+    where(param: string, condition: '=' | '>=' | '<=' | '>' | '<' | 'NOT' | '!=', value: string | boolean | number, isOR: boolean = false) {
+        if(this._where.length > 0) {
+            this._where += isOR  ? ' OR ' : ' AND ';
+        }
+        this._whereParams.push(value);
+        this._where += `${param} ${condition} $${this._whereParams.length}`;
+        return this;
+    }
+
 }

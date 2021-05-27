@@ -47,4 +47,4 @@ class ContactCompany {
     }
 }
 exports.default = ContactCompany;
-//# sourceMappingURL=ContactCompany.class.js.map
+//# sourceMappingURL=contact-company.class.js.map

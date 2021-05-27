@@ -3,6 +3,6 @@ export interface IContactCompany {
     company: string;
     jobTitle: string;
     department: string;
-    createdAt?: Date;
-    modifiedAt?: Date;
+    createdAt?: Date | null;
+    modifiedAt?: Date | null;
 }
