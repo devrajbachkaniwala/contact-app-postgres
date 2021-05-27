@@ -4,7 +4,7 @@ import cors from 'cors';
 import bodyParser from 'body-parser';
 import { ICreateUser } from './src/interfaces/user.interface';
 import { IContact } from './src/interfaces/Contact.interface';
-import { ILabel } from './src/interfaces/Label.interface';
+import { ILabel } from './src/interfaces/label.interface';
 import { IContactLabel } from './src/interfaces/contact-label.interface';
 import { IContactCompany } from './src/interfaces/contact-company.interface';
 

@@ -1,5 +1,5 @@
 import { pool } from "../database/db";
-import { ILabel } from "../interfaces/Label.interface";
+import { ILabel } from "../interfaces/label.interface";
 
 export default class Label {
     static async get(userId: number): Promise<ILabel[]> {
