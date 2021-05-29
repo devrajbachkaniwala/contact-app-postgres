@@ -1,18 +1,9 @@
-import { Pool, QueryResult } from "pg";
-//import { pool } from "../Database/db";
-
+import { Pool, PoolConfig, QueryResult } from "pg";
 
 type action = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
 type multiType = string | number | boolean | null;
 
-
-let pool: Pool;
-//connect to postgres database
-const connect = (data: Object) => {
-    pool = new Pool(data);
-}
-
-export class RDBQuery {
+class RDBQuery {
     private __action: action = 'SELECT';
     private __columns: string = '';
     private __tables: string = '';
@@ -25,9 +16,11 @@ export class RDBQuery {
     private __having: string = '';
     private __join: string = '';
     private __whereParams: multiType[] = [];
+    private __config: PoolConfig;
 
-    constructor(action: action) {
+    constructor(action: action, config?: PoolConfig) {
         this.__action = action;
+        this.__config = config;
     }
 
     get query(): { query: string, params: multiType[] } {
@@ -55,6 +48,7 @@ export class RDBQuery {
 
     // execute the query
     protected _execute(): Promise<QueryResult<any>> {
+        const pool: Pool = new Pool(this.__config);
         return pool.query(this.query.query, this.query.params);
     }
 
@@ -106,18 +100,16 @@ export class RDBQuery {
 
                 if(condition == 'IN') {
                     if(typeof value == 'object') {
-                        //let inQuery: string = "('" + value.join("','") + "')";
                         let index = this.__whereParams.map( (val, i) => i += 1);
-                        let inQuery: string = `( $${index.join(", $")} ) `;
+                        let inQuery: string = `( $${index.join(', $')} ) `;
                         this.__where += `${param} ${condition} ${inQuery}`;
                     }
                 }
     
                 if(condition == 'NOT IN') {
                     if(typeof value == 'object') {
-                        //let inQuery: string = "('" + value.join("','") + "')";
                         let index = this.__whereParams.map( (val, i) => i += 1);
-                        let inQuery: string = ` ( $${index.join(", $")} ) `;
+                        let inQuery: string = ` ( $${index.join(', $')} ) `;
                         this.__where += `${param} ${condition} ${inQuery}`;
                     }
                 }
@@ -153,7 +145,11 @@ export class RDBQuery {
     }
 
     //giving array of columns
-    protected _columns(params: string[]) {
+    protected _columns(params: string | string[]) {
+        if(typeof params == 'string') {
+            params = [ params ];
+        }
+
         if(this.__action == 'INSERT') {
             this.__columns += '(' + params.join(', ') + ') ';
         } else {
@@ -163,7 +159,11 @@ export class RDBQuery {
     }
 
     //giving array of tables
-    protected _tables(params: string[]) {
+    protected _tables(params: string | string[]) {
+        if(typeof params == 'string') {
+            params = [ params ];
+        }
+
         if(this.__action == 'INSERT') {
             this.__tables += params.join(' ');
         } else {
@@ -188,19 +188,26 @@ export class RDBQuery {
             this.__whereParams.push(params.shift());
         }
         let index = this.__whereParams.map( (val, i) => i += 1);
-        //this._newValues += "('" + index.join("','") + "')";
-        this.__newValues += ` VALUES( $${index.join(", $")} )`;
+        this.__newValues += ` VALUES( $${index.join(', $')} )`;
         return this;
     }
 
     //performing asc and desc according to columns
-    protected _orderBy(params: string[], order: 'ASC' | 'DESC') {
+    protected _orderBy(params: string | string[], order: 'ASC' | 'DESC') {
+        if(typeof params == 'string') {
+            params = [ params ];
+        }
+
         this.__orderBy += ` ORDER BY ${params.join(', ')} ${order}`;
         return this;
     }
 
     //grouping columns
-    protected _groupBy(params: string[]) {
+    protected _groupBy(params: string | string[]) {
+        if(typeof params == 'string') {
+            params = [ params ];
+        }
+
         this.__groupBy += ` GROUP BY ${params.join(',')} `;
         return this;
     }
@@ -222,49 +229,127 @@ export class RDBQuery {
         this.__join += ` ${condition} ${table2} ON (${on[0]} = ${on[1]}) `;
         return this;
     }
+
+    protected _simpleQuery(sql: SQLQuery) {
+        if(sql.action == 'SELECT') {
+            this._action(sql.action);
+            this._columns(sql.columns);
+            this._tables(sql.tables);
+    
+            if(sql.join) {
+                sql.join.forEach( item => {
+                    this._join(item.condition, item.table2, item.on);
+                });
+            }
+    
+            if(sql.where) {
+                sql.where.forEach( item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                });
+            }
+            
+            if(sql.groupBy) {
+                this._groupBy(sql.groupBy);
+            }
+    
+            if(sql.having) {
+                this._having(sql.having.param, sql.having.condition, sql.having.value);
+            }
+    
+            if(sql.orderBy) {
+                this._orderBy(sql.orderBy.params, sql.orderBy.order);    
+            }
+        } else if(sql.action == 'INSERT') {
+            this._action('INSERT');
+            this._tables(sql.tables);
+            
+            if(sql.data) {
+                let cols = [];
+                let values = [];
+    
+                for(let key of Object.keys(sql.data)) {
+                    cols.push(key);
+                    values.push(sql.data[key]);
+                }
+
+                this._columns(cols);
+                this._newValues(values);
+            } else if(sql.newValues) {
+                this._columns(sql.columns);
+                this._newValues(sql.newValues);
+            }
+        } else if(sql.action == 'UPDATE') {
+            this._action('UPDATE');
+            this._tables(sql.tables);
+
+            if(sql.data) {
+                for(let key of Object.keys(sql.data)) {
+                    this._set(key, sql.data[key]);
+                }
+            }
+
+            if(sql.where) {
+                sql.where.forEach( item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                })
+            }
+        } else if(sql.action == 'DELETE') {
+            this._action('DELETE');
+            this._tables(sql.tables);
+
+            if(sql.where) {
+                sql.where.forEach( item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                })
+            }
+        }
+    }
 }
 
 export class ReadQuery extends RDBQuery {
-    constructor() {
-        super('SELECT');
+    constructor(action: action = 'SELECT', config?: PoolConfig) {
+        super(action, config);
     }
 
-    static get instance(): ReadQuery {
+    static instance(): ReadQuery {
         return new ReadQuery();
     }
 
     
-    columns(params: string[]): ReadQuery {
+    columns(params: string | string[]): ReadQuery {
         this._columns(params);
         return this;
     }
 
-    tables(params: string[]): ReadQuery {
+    tables(params: string | string[]): ReadQuery {
         this._tables(params);
         return this;
     }
 
-    join(condition: "INNER JOIN" | "LEFT JOIN" | "RIGHT JOIN" | "FULL JOIN", table2: string, on: string[]): ReadQuery {
+    join(condition: 'INNER JOIN' | 'LEFT JOIN' | 'RIGHT JOIN' | 'FULL JOIN', table2: string, on: string[]): ReadQuery {
         this._join(condition, table2, on);
         return this;
     }
 
-    where(param: string, condition: "=" | ">=" | "<=" | ">" | "<" | "!=" | "<>" | "LIKE" | "NOT LIKE" | "ILIKE" | "NOT ILIKE" | "IS NULL" | "IS NOT NULL" | "BETWEEN" | "NOT BETWEEN" | "IN" | "NOT IN", value?: multiType | multiType[], isOr?: boolean): ReadQuery {
+    where(param: string, condition: '=' | '>=' | '<=' | '>' | '<' | '!=' | '<>' | 'LIKE' | 'NOT LIKE' | 'ILIKE' | 'NOT ILIKE' | 'IS NULL' | 'IS NOT NULL' | 'BETWEEN' | 'NOT BETWEEN' | 'IN' | 'NOT IN', value?: multiType | multiType[], isOr?: boolean): ReadQuery {
         this._where(param, condition, value, isOr);
         return this;
     }
 
-    groupBy(params: string[]): ReadQuery {
+    groupBy(params: string | string[]): ReadQuery {
         this._groupBy(params);
         return this;
     }
 
-    having(param: string, condition: "=" | "<=" | ">=" | "<" | ">" | "!=" | "<>", value: multiType): ReadQuery {
+    having(param: string, condition: '=' | '<=' | '>=' | '<' | '>' | '!=' | '<>', value: multiType): ReadQuery {
         this._having(param, condition, value);
         return this;
     }
     
-    orderBy(params: string[], order: "ASC" | "DESC"): ReadQuery {
+    orderBy(params: string | string[], order: 'ASC' | 'DESC'): ReadQuery {
         this._orderBy(params, order);
         return this;
     }
@@ -276,8 +361,8 @@ export class ReadQuery extends RDBQuery {
 }
 
 export class WriteQuery extends RDBQuery {
-    constructor(action: action = 'INSERT') {
-        super(action);
+    constructor(action: action = 'INSERT', config?: PoolConfig) {
+        super(action, config);
     }
 
     static get instance(): WriteQuery {
@@ -285,7 +370,7 @@ export class WriteQuery extends RDBQuery {
     }
 
     table(param: string): WriteQuery {
-        this._tables([ param ]);
+        this._tables(param);
         return this;
     }
 
@@ -303,14 +388,14 @@ export class WriteQuery extends RDBQuery {
         return this;
     }
 
-    get(): Promise<QueryResult<any>> {
+    execute(): Promise<QueryResult<any>> {
         return this._execute();
     }
 }
 
 export class UpdateQuery extends RDBQuery {
-    constructor(action: action = 'UPDATE') {
-        super('UPDATE');
+    constructor(action: action = 'UPDATE', config?: PoolConfig) {
+        super(action, config);
     }
 
     static get instance(): UpdateQuery {
@@ -318,12 +403,11 @@ export class UpdateQuery extends RDBQuery {
     }
 
     table(param: string): UpdateQuery {
-        this._tables([ param ]);
+        this._tables(param);
         return this;
     }
 
     update(data: Object): UpdateQuery {
-
         this._action('UPDATE');
         for(let key of Object.keys(data)) {
             this._set(key,data[key]);
@@ -331,19 +415,19 @@ export class UpdateQuery extends RDBQuery {
         return this;
     }
 
-    where(param: string, condition: "=" | ">=" | "<=" | ">" | "<" | "!=" | "<>" | "LIKE" | "NOT LIKE" | "ILIKE" | "NOT ILIKE" | "IS NULL" | "IS NOT NULL" | "BETWEEN" | "NOT BETWEEN" | "IN" | "NOT IN", value?: multiType | multiType[], isOr?: boolean): UpdateQuery {
+    where(param: string, condition: '=' | '>=' | '<=' | '>' | '<' | '!=' | '<>' | 'LIKE' | 'NOT LIKE' | 'ILIKE' | 'NOT ILIKE' | 'IS NULL' | 'IS NOT NULL' | 'BETWEEN' | 'NOT BETWEEN' | 'IN' | 'NOT IN', value?: multiType | multiType[], isOr?: boolean): UpdateQuery {
         this._where(param, condition, value, isOr);
         return this;
     }
 
-    get(): Promise<QueryResult<any>> {
+    execute(): Promise<QueryResult<any>> {
         return this._execute();
     }
 }
 
 export class DeleteQuery extends RDBQuery {
-    constructor(action: action = 'DELETE') {
-        super(action);
+    constructor(action: action = 'DELETE', config?: PoolConfig) {
+        super(action, config);
     }
 
     static get instance(): DeleteQuery {
@@ -352,40 +436,101 @@ export class DeleteQuery extends RDBQuery {
 
     table(param: string): DeleteQuery {
         this._action('DELETE');
-        this._tables([ param ]);
+        this._tables(param);
         return this;
     }
 
-    where(param: string, condition: "=" | ">=" | "<=" | ">" | "<" | "!=" | "<>" | "LIKE" | "NOT LIKE" | "ILIKE" | "NOT ILIKE" | "IS NULL" | "IS NOT NULL" | "BETWEEN" | "NOT BETWEEN" | "IN" | "NOT IN", value?: multiType | multiType[], isOr?: boolean): DeleteQuery {
+    where(param: string, condition: '=' | '>=' | '<=' | '>' | '<' | '!=' | '<>' | 'LIKE' | 'NOT LIKE' | 'ILIKE' | 'NOT ILIKE' | 'IS NULL' | 'IS NOT NULL' | 'BETWEEN' | 'NOT BETWEEN' | 'IN' | 'NOT IN', value?: multiType | multiType[], isOr?: boolean): DeleteQuery {
         this._where(param, condition, value, isOr);
         return this;
     }
 
-    get(): Promise<QueryResult<any>> {
+    delete(): Promise<QueryResult<any>> {
+        return this._execute();
+    }
+}
+
+export class SimpleQuery extends RDBQuery {
+    constructor(action: action = 'SELECT', config?: PoolConfig) {
+        super(action, config);
+    }
+
+    simpleQuery(sql: SQLQuery): SimpleQuery {
+        this._simpleQuery(sql);
+        return this;
+    }
+
+    execute(): Promise<QueryResult<any>> {
         return this._execute();
     }
 }
 
 export class EasySQL {
-    static set connect(data: Object) {
-        connect(data);
+    private __config: PoolConfig;
+
+    constructor(config?: PoolConfig) {
+        this.__config = config;
     }
 
-    static get read(): ReadQuery {
-        return ReadQuery.instance;
-    }
-    
-    static get write(): WriteQuery {
-        return WriteQuery.instance;
+    static init(config: PoolConfig): EasySQL {
+        return new EasySQL(config);
     }
 
-    static get update(): UpdateQuery {
-        return UpdateQuery.instance;
+    get read(): ReadQuery {
+        return new ReadQuery('SELECT', this.__config);
     }
     
-    static get delete(): DeleteQuery {
-        return DeleteQuery.instance;
+    get write(): WriteQuery {
+        return new WriteQuery('INSERT', this.__config);
+    }
+
+    get update(): UpdateQuery {
+        return new UpdateQuery('UPDATE', this.__config);
+    }
+    
+    get delete(): DeleteQuery {
+        return new DeleteQuery('DELETE', this.__config);
+    }
+
+    get simpleQuery(): SimpleQuery {
+        return new SimpleQuery('SELECT', this.__config);
     }
 }
 
+export interface SQLQuery {
+    action: 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
+    columns?: string | Array<string>;
+    tables: string | Array<string>;
+    join?: Array<SQLQueryJoin>;
+    where?: Array<SQLQueryWhere>;
+    groupBy?: string | Array<string>;
+    having?: SQLQueryHaving;
+    orderBy?: SQLQueryOrderBy;
+    data?: Object;
+    newValues?: multiType[];
+}
 
+export interface SQLQueryJoin {
+    condition: 'INNER JOIN' | 'LEFT JOIN' | 'RIGHT JOIN' | 'FULL JOIN';
+    table2: string;
+    on: Array<string>;
+}
+
+export interface SQLQueryWhere {
+    type: 'WHERE' | 'OR WHERE' | 'AND WHERE';
+    field?: string;
+    condition?: '=' | '>=' | '<=' | '>' | '<' | '!=' | '<>' | 'LIKE' | 'NOT LIKE' | 'ILIKE' | 'NOT ILIKE' | 'IS NULL' | 'IS NOT NULL' | 'BETWEEN' | 'NOT BETWEEN' | 'IN' | 'NOT IN';
+    value?: multiType | Array<multiType>;
+    nested?: Array<SQLQueryWhere>;
+}
+
+export interface SQLQueryHaving {
+    param: string;
+    condition: '=' | '<=' | '>=' | '<' | '>' | '!=' | '<>';
+    value: multiType;
+}
+
+export interface SQLQueryOrderBy {
+    params: string | string[];
+    order: 'ASC' | 'DESC';
+}
