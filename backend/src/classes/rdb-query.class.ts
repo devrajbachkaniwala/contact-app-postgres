@@ -114,24 +114,24 @@ class RDBQuery {
                     }
                 }
             }
+        } else if(condition == '=' && typeof value == 'string' && value.includes('.')) {
+            this.__where += `${param} ${condition} ${value}`;
+        } else if(condition == '=' && typeof value == 'object' && value.length == 1 && value.map( item => (typeof item == 'string') ? (item.includes('.')) ? true : false : false) ) {
+            this.__where += `${param} ${condition} ${value.map( item => item)}`;
         } else {
             if(typeof value == 'object') {
                 if(value.length == 1) {
                     this.__whereParams.push(value.shift());
-                }
-                
-                if(value.length == 0) {
+                } else if(value.length == 0) {
                     throw new Error('Value should contain one value');
-                }
-                
-                if(value.length > 1) {
+                } else if(value.length > 1) {
                     throw new Error('Value should contain only one value');
                 }
+            } else {
+                this.__whereParams.push(value);
             }
-            this.__whereParams.push(value as multiType);
             this.__where += `${param} ${condition} $${this.__whereParams.length}`;
         }
-
         return this;
     }
 
@@ -193,12 +193,10 @@ class RDBQuery {
     }
 
     //performing asc and desc according to columns
-    protected _orderBy(params: string | string[], order: 'ASC' | 'DESC') {
-        if(typeof params == 'string') {
-            params = [ params ];
-        }
+    protected _orderBy(param: string, order: 'ASC' | 'DESC') {
+        (this.__orderBy.length == 0) ? this.__orderBy += ' ORDER BY ' : this.__orderBy += ', ';
 
-        this.__orderBy += ` ORDER BY ${params.join(', ')} ${order}`;
+        this.__orderBy += `${param} ${order}`;
         return this;
     }
 
@@ -258,7 +256,9 @@ class RDBQuery {
             }
     
             if(sql.orderBy) {
-                this._orderBy(sql.orderBy.params, sql.orderBy.order);    
+                sql.orderBy.forEach( item => {
+                    this._orderBy(item.param, item.order);    
+                })
             }
         } else if(sql.action == 'INSERT') {
             this._action('INSERT');
@@ -276,7 +276,7 @@ class RDBQuery {
                 this._columns(cols);
                 this._newValues(values);
             } else if(sql.newValues) {
-                this._columns(sql.columns);
+                (sql.columns) ? this._columns(sql.columns) : '';
                 this._newValues(sql.newValues);
             }
         } else if(sql.action == 'UPDATE') {
@@ -349,8 +349,8 @@ export class ReadQuery extends RDBQuery {
         return this;
     }
     
-    orderBy(params: string | string[], order: 'ASC' | 'DESC'): ReadQuery {
-        this._orderBy(params, order);
+    orderBy(param: string, order: 'ASC' | 'DESC'): ReadQuery {
+        this._orderBy(param, order);
         return this;
     }
 
@@ -505,7 +505,7 @@ export interface SQLQuery {
     where?: Array<SQLQueryWhere>;
     groupBy?: string | Array<string>;
     having?: SQLQueryHaving;
-    orderBy?: SQLQueryOrderBy;
+    orderBy?: Array<SQLQueryOrderBy>;
     data?: Object;
     newValues?: multiType[];
 }
@@ -531,6 +531,6 @@ export interface SQLQueryHaving {
 }
 
 export interface SQLQueryOrderBy {
-    params: string | string[];
+    param: string;
     order: 'ASC' | 'DESC';
 }
