@@ -1,150 +1,443 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.RDBQuery = void 0;
-const db_1 = require("../Database/db");
+exports.EasySQL = exports.SimpleQuery = exports.DeleteQuery = exports.UpdateQuery = exports.WriteQuery = exports.ReadQuery = void 0;
+const pg_1 = require("pg");
 class RDBQuery {
-    constructor() {
-        this._action = 'SELECT';
-        this._columns = '';
-        this._tables = '';
-        this._where = '';
-        this._set = '';
-        this._newValues = '';
-        this._clause = '';
-        this._orderBy = '';
-        this._groupBy = '';
-        this._having = '';
-        this._join = '';
+    constructor(action, config) {
+        this.__action = 'SELECT';
+        this.__columns = '';
+        this.__tables = '';
+        this.__where = '';
+        this.__set = '';
+        this.__newValues = '';
+        this.__clause = '';
+        this.__orderBy = '';
+        this.__groupBy = '';
+        this.__having = '';
+        this.__join = '';
+        this.__whereParams = [];
+        this.__action = action;
+        this.__config = config;
     }
-    /* get queryWhere() {
-        return this._where;
-    } */
-    // execute the query
-    execute() {
-        return __awaiter(this, void 0, void 0, function* () {
-            let fullQuery = '';
-            if (this._action == 'INSERT') {
-                fullQuery += this._action;
-                fullQuery += this._clause;
-                fullQuery += this._tables;
-                fullQuery += this._columns;
-                fullQuery += this._newValues + ';';
-            }
-            else {
-                fullQuery += this._action;
-                fullQuery += this._clause;
-                fullQuery += this._columns;
-                fullQuery += this._tables;
-                fullQuery += this._set;
-                fullQuery += this._join;
-                fullQuery += this._where;
-                fullQuery += this._groupBy;
-                fullQuery += this._having;
-                fullQuery += this._orderBy;
-            }
-            console.log(fullQuery);
-            const result = yield db_1.pool.query(fullQuery);
-            return result.rows;
-        });
-    }
-    // giving necessary condition
-    where(param, condition, value = '', isOr = false) {
-        if (this._where.length > 0) {
-            this._where += isOr ? ' OR ' : ' AND ';
-        }
-        (this._where.length == 0) ? this._where += ' WHERE ' : this._where += '';
-        if (condition == 'IS NULL' || condition == 'IS NOT NULL') {
-            (condition == 'IS NULL') ? this._where += `${param} ${condition}` : this._where += `${param} ${condition}`;
-        }
-        else if (condition == 'BETWEEN' || condition == 'NOT BETWEEN' || condition == 'IN' || condition == 'NOT IN') {
-            (condition == 'BETWEEN') ? this._where += `${param} ${condition} '${value[0]}' AND '${value[1]}'` : '';
-            (condition == 'NOT BETWEEN') ? this._where += `${param} ${condition} '${value[0]}' AND '${value[1]}'` : '';
-            if (condition == 'IN') {
-                if (typeof value == 'object') {
-                    let inQuery = "('" + value.join("','") + "')";
-                    this._where += `${param} ${condition} ${inQuery}`;
-                }
-            }
-            if (condition == 'NOT IN') {
-                if (typeof value == 'object') {
-                    let inQuery = "('" + value.join("','") + "')";
-                    this._where += `${param} ${condition} ${inQuery}`;
-                }
-            }
+    get query() {
+        let fullQuery = '';
+        if (this.__action == 'INSERT') {
+            fullQuery += this.__action;
+            fullQuery += this.__clause;
+            fullQuery += this.__tables;
+            fullQuery += this.__columns;
+            fullQuery += this.__newValues + ';';
         }
         else {
-            this._where += `${param} ${condition} '${value}'`;
+            fullQuery += this.__action;
+            fullQuery += this.__clause;
+            fullQuery += this.__columns;
+            fullQuery += this.__tables;
+            fullQuery += this.__set;
+            fullQuery += this.__join;
+            fullQuery += this.__where;
+            fullQuery += this.__groupBy;
+            fullQuery += this.__having;
+            fullQuery += this.__orderBy;
+        }
+        return { query: fullQuery, params: this.__whereParams };
+    }
+    // execute the query
+    _execute() {
+        const pool = new pg_1.Pool(this.__config);
+        return pool.query(this.query.query, this.query.params);
+    }
+    // giving necessary condition
+    _where(param, condition, value = null, isOr = false) {
+        if (this.__where.length > 0) {
+            this.__where += isOr ? ' OR ' : ' AND ';
+        }
+        (this.__where.length == 0) ? this.__where += ' WHERE ' : this.__where += '';
+        if (value == null) {
+            if (!(condition == 'IS NULL' || condition == 'IS NOT NULL')) {
+                throw new Error('Value should not be empty');
+            }
+        }
+        if (condition == 'IS NULL' || condition == 'IS NOT NULL') {
+            (condition == 'IS NULL') ? this.__where += `${param} ${condition}` : this.__where += `${param} ${condition}`;
+        }
+        else if (condition == 'BETWEEN' || condition == 'NOT BETWEEN' || condition == 'IN' || condition == 'NOT IN') {
+            if (condition == 'BETWEEN' || condition == 'NOT BETWEEN') {
+                if (typeof value == 'object') {
+                    if (value.length == 2) {
+                        this.__whereParams.push(value.shift());
+                        this.__whereParams.push(value.shift());
+                    }
+                    else if (value.length == 0) {
+                        throw new Error('Value should contain two values');
+                    }
+                    else if (value.length > 2) {
+                        throw new Error('Value should contain only two values');
+                    }
+                }
+                console.log(this.__whereParams);
+                (condition == 'BETWEEN') ? this.__where += `${param} ${condition} $${this.__whereParams.length - 1} AND $${this.__whereParams.length}` : '';
+                (condition == 'NOT BETWEEN') ? this.__where += `${param} ${condition} $${this.__whereParams.length - 1} AND $${this.__whereParams.length}` : '';
+            }
+            if (condition == 'IN' || condition == 'NOT IN') {
+                if (typeof value == 'object') {
+                    if (value.length == 0) {
+                        throw new Error('Value should contain at least one value');
+                    }
+                    while (value.length != 0) {
+                        this.__whereParams.push(value.shift());
+                    }
+                }
+                else {
+                    value = [value];
+                    this.__whereParams.push(value.shift());
+                }
+                if (condition == 'IN') {
+                    if (typeof value == 'object') {
+                        let index = this.__whereParams.map((val, i) => i += 1);
+                        let inQuery = `( $${index.join(', $')} ) `;
+                        this.__where += `${param} ${condition} ${inQuery}`;
+                    }
+                }
+                if (condition == 'NOT IN') {
+                    if (typeof value == 'object') {
+                        let index = this.__whereParams.map((val, i) => i += 1);
+                        let inQuery = ` ( $${index.join(', $')} ) `;
+                        this.__where += `${param} ${condition} ${inQuery}`;
+                    }
+                }
+            }
+        }
+        else if (condition == '=' && typeof value == 'string' && value.includes('.')) {
+            this.__where += `${param} ${condition} ${value}`;
+        }
+        else if (condition == '=' && typeof value == 'object' && value.length == 1 && value.map(item => (typeof item == 'string') ? (item.includes('.')) ? true : false : false)) {
+            this.__where += `${param} ${condition} ${value.map(item => item)}`;
+        }
+        else {
+            if (typeof value == 'object') {
+                if (value.length == 1) {
+                    this.__whereParams.push(value.shift());
+                }
+                else if (value.length == 0) {
+                    throw new Error('Value should contain one value');
+                }
+                else if (value.length > 1) {
+                    throw new Error('Value should contain only one value');
+                }
+            }
+            else {
+                this.__whereParams.push(value);
+            }
+            this.__where += `${param} ${condition} $${this.__whereParams.length}`;
         }
         return this;
     }
     //which query we want to execute
-    action(action) {
-        this._action = action;
-        if (this._action == 'DELETE' || this._action == 'INSERT') {
-            (this._action == 'DELETE') ? this._clause += ' FROM ' : this._clause += ' INTO ';
+    _action(action) {
+        this.__action = action;
+        if (this.__action == 'DELETE' || this.__action == 'INSERT') {
+            (this.__action == 'DELETE') ? this.__clause += ' FROM ' : this.__clause += ' INTO ';
         }
         return this;
     }
     //giving array of columns
-    columns(params) {
-        if (this._action == 'INSERT') {
-            this._columns += '(' + params.join(', ') + ') VALUES';
+    _columns(params) {
+        if (typeof params == 'string') {
+            params = [params];
+        }
+        if (this.__action == 'INSERT') {
+            this.__columns += '(' + params.join(', ') + ') ';
         }
         else {
-            this._columns += ' ' + params.join(', ') + ' FROM';
+            this.__columns += ' ' + params.join(', ') + ' FROM';
         }
         return this;
     }
     //giving array of tables
-    tables(params) {
-        if (this._action == 'INSERT') {
-            this._tables += params.join(' ');
+    _tables(params) {
+        if (typeof params == 'string') {
+            params = [params];
+        }
+        if (this.__action == 'INSERT') {
+            this.__tables += params.join(' ');
         }
         else {
-            this._tables += ' ' + params.join(', ');
+            this.__tables += ' ' + params.join(', ');
         }
         return this;
     }
     //updating and setting the new value to the column
-    set(param, value) {
-        (this._set.length == 0) ? this._set += ' SET ' : this._set += ', ';
-        (typeof value == "string") ? this._set += `${param} = '${value}'` : this._set += `${param} = ${value}`;
+    _set(param, value) {
+        (this.__set.length == 0) ? this.__set += ' SET ' : this.__set += ', ';
+        this.__whereParams.push(value);
+        this.__set += `${param} = $${this.__whereParams.length}`;
         return this;
     }
     //insert new values in the table
-    newValues(params) {
-        this._newValues += "('" + params.join("','") + "')";
+    _newValues(params) {
+        while (params.length != 0) {
+            this.__whereParams.push(params.shift());
+        }
+        let index = this.__whereParams.map((val, i) => i += 1);
+        this.__newValues += ` VALUES( $${index.join(', $')} )`;
         return this;
     }
     //performing asc and desc according to columns
-    orderBy(params, order) {
-        this._orderBy += ` ORDER BY ${params.join(', ')} ${order}`;
+    _orderBy(param, order) {
+        (this.__orderBy.length == 0) ? this.__orderBy += ' ORDER BY ' : this.__orderBy += ', ';
+        this.__orderBy += `${param} ${order}`;
         return this;
     }
     //grouping columns
-    groupBy(params) {
-        this._groupBy += ` GROUP BY ${params.join(',')} `;
+    _groupBy(params) {
+        if (typeof params == 'string') {
+            params = [params];
+        }
+        this.__groupBy += ` GROUP BY ${params.join(',')} `;
         return this;
     }
     //grouping column's condition
-    having(param, condition, value) {
-        this._having += ` HAVING ${param} ${condition} '${value}' `;
+    _having(param, condition, value) {
+        this.__whereParams.push(value);
+        this.__having += ` HAVING ${param} ${condition} $${this.__whereParams.length} `;
         return this;
     }
     //joining tables
-    join(condition, table2, on) {
-        this._join += ` ${condition} ${table2} ON ${on[0]} = ${on[1]} `;
+    _join(condition, table2, on) {
+        if (on.length == 0) {
+            throw new Error('Join table ON should not be empty');
+        }
+        else if (on.length > 2) {
+            throw new Error('Join table ON should contain only two values');
+        }
+        this.__join += ` ${condition} ${table2} ON (${on[0]} = ${on[1]}) `;
         return this;
     }
+    _simpleQuery(sql) {
+        if (sql.action == 'SELECT') {
+            this._action(sql.action);
+            this._columns(sql.columns);
+            this._tables(sql.tables);
+            if (sql.join) {
+                sql.join.forEach(item => {
+                    this._join(item.condition, item.table2, item.on);
+                });
+            }
+            if (sql.where) {
+                sql.where.forEach(item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                });
+            }
+            if (sql.groupBy) {
+                this._groupBy(sql.groupBy);
+            }
+            if (sql.having) {
+                this._having(sql.having.param, sql.having.condition, sql.having.value);
+            }
+            if (sql.orderBy) {
+                sql.orderBy.forEach(item => {
+                    this._orderBy(item.param, item.order);
+                });
+            }
+        }
+        else if (sql.action == 'INSERT') {
+            this._action('INSERT');
+            this._tables(sql.tables);
+            if (sql.data) {
+                let cols = [];
+                let values = [];
+                for (let key of Object.keys(sql.data)) {
+                    cols.push(key);
+                    values.push(sql.data[key]);
+                }
+                this._columns(cols);
+                this._newValues(values);
+            }
+            else if (sql.newValues) {
+                (sql.columns) ? this._columns(sql.columns) : '';
+                this._newValues(sql.newValues);
+            }
+        }
+        else if (sql.action == 'UPDATE') {
+            this._action('UPDATE');
+            this._tables(sql.tables);
+            if (sql.data) {
+                for (let key of Object.keys(sql.data)) {
+                    this._set(key, sql.data[key]);
+                }
+            }
+            if (sql.where) {
+                sql.where.forEach(item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                });
+            }
+        }
+        else if (sql.action == 'DELETE') {
+            this._action('DELETE');
+            this._tables(sql.tables);
+            if (sql.where) {
+                sql.where.forEach(item => {
+                    const isOr = (item.type == 'OR WHERE') ? true : false;
+                    this._where(item.field, item.condition, item.value, isOr);
+                });
+            }
+        }
+    }
 }
-exports.RDBQuery = RDBQuery;
+class ReadQuery extends RDBQuery {
+    constructor(action = 'SELECT', config) {
+        super(action, config);
+    }
+    static instance() {
+        return new ReadQuery();
+    }
+    columns(params) {
+        this._columns(params);
+        return this;
+    }
+    tables(params) {
+        this._tables(params);
+        return this;
+    }
+    join(condition, table2, on) {
+        this._join(condition, table2, on);
+        return this;
+    }
+    where(param, condition, value, isOr) {
+        this._where(param, condition, value, isOr);
+        return this;
+    }
+    groupBy(params) {
+        this._groupBy(params);
+        return this;
+    }
+    having(param, condition, value) {
+        this._having(param, condition, value);
+        return this;
+    }
+    orderBy(param, order) {
+        this._orderBy(param, order);
+        return this;
+    }
+    get() {
+        return this._execute();
+    }
+}
+exports.ReadQuery = ReadQuery;
+class WriteQuery extends RDBQuery {
+    constructor(action = 'INSERT', config) {
+        super(action, config);
+    }
+    static get instance() {
+        return new WriteQuery();
+    }
+    table(param) {
+        this._tables(param);
+        return this;
+    }
+    insert(data) {
+        let cols = [];
+        let values = [];
+        for (let key of Object.keys(data)) {
+            cols.push(key);
+            values.push(data[key]);
+        }
+        this._action('INSERT');
+        this._columns(cols);
+        this._newValues(values);
+        return this;
+    }
+    execute() {
+        return this._execute();
+    }
+}
+exports.WriteQuery = WriteQuery;
+class UpdateQuery extends RDBQuery {
+    constructor(action = 'UPDATE', config) {
+        super(action, config);
+    }
+    static get instance() {
+        return new UpdateQuery();
+    }
+    table(param) {
+        this._tables(param);
+        return this;
+    }
+    update(data) {
+        this._action('UPDATE');
+        for (let key of Object.keys(data)) {
+            this._set(key, data[key]);
+        }
+        return this;
+    }
+    where(param, condition, value, isOr) {
+        this._where(param, condition, value, isOr);
+        return this;
+    }
+    execute() {
+        return this._execute();
+    }
+}
+exports.UpdateQuery = UpdateQuery;
+class DeleteQuery extends RDBQuery {
+    constructor(action = 'DELETE', config) {
+        super(action, config);
+    }
+    static get instance() {
+        return new DeleteQuery();
+    }
+    table(param) {
+        this._action('DELETE');
+        this._tables(param);
+        return this;
+    }
+    where(param, condition, value, isOr) {
+        this._where(param, condition, value, isOr);
+        return this;
+    }
+    delete() {
+        return this._execute();
+    }
+}
+exports.DeleteQuery = DeleteQuery;
+class SimpleQuery extends RDBQuery {
+    constructor(action = 'SELECT', config) {
+        super(action, config);
+    }
+    simpleQuery(sql) {
+        this._simpleQuery(sql);
+        return this;
+    }
+    execute() {
+        return this._execute();
+    }
+}
+exports.SimpleQuery = SimpleQuery;
+class EasySQL {
+    constructor(config) {
+        this.__config = config;
+    }
+    static init(config) {
+        return new EasySQL(config);
+    }
+    get read() {
+        return new ReadQuery('SELECT', this.__config);
+    }
+    get write() {
+        return new WriteQuery('INSERT', this.__config);
+    }
+    get update() {
+        return new UpdateQuery('UPDATE', this.__config);
+    }
+    get delete() {
+        return new DeleteQuery('DELETE', this.__config);
+    }
+    get simpleQuery() {
+        return new SimpleQuery('SELECT', this.__config);
+    }
+}
+exports.EasySQL = EasySQL;
 //# sourceMappingURL=rdb-query.class.js.map

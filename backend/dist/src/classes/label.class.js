@@ -11,10 +11,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../database/db");
 class Label {
-    static get(userId) {
+    static get(labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const label = (yield db_1.pool.query("SELECT Labels.userId, labelId, labelName, createdAt, modifiedAt FROM Labels WHERE Labels.userId = $1", [userId])).rows;
+                const label = (yield db_1.db.read.columns('*').tables('Labels').where('labelId', '=', labelId).get()).rows;
                 return label;
             }
             catch (err) {
@@ -25,7 +25,7 @@ class Label {
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const labels = (yield db_1.pool.query("SELECT Labels.userId, labelId, labelName, createdAt, modifiedAt FROM Labels")).rows;
+                const labels = (yield db_1.db.read.columns('*').tables('Labels').get()).rows;
                 return labels;
             }
             catch (err) {
@@ -33,33 +33,33 @@ class Label {
             }
         });
     }
-    static create(userId, label) {
+    static create(label) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const labels = (yield db_1.pool.query("INSERT INTO Labels (userId, labelId, labelName) VALUES ($1, $2, $3) RETURNING userId, labelId, labelName, createdAt, modifiedAt", [userId, label.labelId, label.labelName])).rows;
-                return labels;
+                const newLabel = (yield db_1.db.write.table('Labels').insert(label).execute()).rowCount;
+                return (newLabel == 1) ? { message: 'New label created successfully' } : { message: 'Failed to create label' };
             }
             catch (err) {
                 throw err;
             }
         });
     }
-    static update(userId, label) {
+    static update(label) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const updatedLabel = (yield db_1.pool.query("UPDATE Labels SET labelName = $1, modifiedAt = $2 WHERE userId = $3 AND labelId = $4 RETURNING userId, labelId, LabelName, createdAt, modifiedAt", [label.labelName, label.modifiedAt, userId, label.labelId])).rows;
-                return updatedLabel;
+                const updatedLabel = (yield db_1.db.update.table('Labels').update(label).where('labelId', '=', label.labelId).execute()).rowCount;
+                return (updatedLabel == 1) ? { message: 'Label updated successfully' } : { message: 'Failed to update label' };
             }
             catch (err) {
                 throw err;
             }
         });
     }
-    static delete(userId, labelId) {
+    static delete(labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const label = (yield db_1.pool.query("DELETE FROM Labels WHERE userId = $1 AND labelId = $2", [userId, labelId])).rows;
-                return (label.length == 0) ? { message: 'Label deleted' } : { message: 'Failed to delete label' };
+                const label = (yield db_1.db.delete.table('Labels').where('labelId', '=', labelId).delete()).rowCount;
+                return (label == 0) ? { message: 'Label deleted' } : { message: 'Failed to delete label' };
             }
             catch (err) {
                 throw err;

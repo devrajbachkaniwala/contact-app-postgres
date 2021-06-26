@@ -12,10 +12,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../database/db");
 class ContactLabel {
     //Get list of contactId of a particular labelId that belongs to a user
-    static get(userId, labelId) {
+    static getByContactID(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactLabel = (yield db_1.pool.query("SELECT ContactLabels.contactId, ContactLabels.labelId, Labels.labelName FROM ContactLabels, Contacts, Labels, Users WHERE ContactLabels.contactId = Contacts.contactId AND ContactLabels.labelId = Labels.labelId AND Users.userId = Contacts.userId AND Users.userId = $1 AND Labels.labelId = $2", [userId, labelId])).rows;
+                const contactLabel = (yield db_1.db.read.columns('*').tables('ContactLabels').where('contactId', '=', contactId).get()).rows;
+                return contactLabel;
+            }
+            catch (err) {
+                throw err;
+            }
+        });
+    }
+    static getByLabelId(labelId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const contactLabel = (yield db_1.db.read.columns('*').tables('ContactLabels').where('labelId', '=', labelId).get()).rows;
                 return contactLabel;
             }
             catch (err) {
@@ -24,10 +35,10 @@ class ContactLabel {
         });
     }
     //Get list of labelId of a particular contactId that belongs to a user
-    static list(userId, contactId) {
+    static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactLabels = (yield db_1.pool.query("SELECT ContactLabels.contactId, ContactLabels.labelId, Labels.labelName FROM ContactLabels, Contacts, Labels, Users WHERE ContactLabels.contactId = Contacts.contactId AND ContactLabels.labelId = Labels.labelId AND Users.userId = Contacts.userId AND Users.userId = $1 AND Contacts.contactId = $2", [userId, contactId])).rows;
+                const contactLabels = (yield db_1.db.read.columns('*').tables('ContactLabels').get()).rows;
                 return contactLabels;
             }
             catch (err) {
@@ -36,11 +47,11 @@ class ContactLabel {
         });
     }
     //Assigns a label to a contact that belongs to a user
-    static create(contactId, labelId) {
+    static create(contactLabel) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const assignContactLabel = (yield db_1.pool.query("INSERT INTO ContactLabels (contactId, labelId) VALUES ($1, $2) RETURNING contactId, labelId", [contactId, labelId])).rows;
-                return assignContactLabel;
+                const assignContactLabel = (yield db_1.db.write.table('ContactLabels').insert(contactLabel).execute()).rowCount;
+                return (assignContactLabel == 1) ? { message: 'Contact label created successfully' } : { message: 'Failed to create Contact label' };
             }
             catch (err) {
                 throw err;
@@ -48,11 +59,22 @@ class ContactLabel {
         });
     }
     //Remove a label from that contact that belongs to a user
-    static delete(contactId, labelId) {
+    static deleteByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactLabel = (yield db_1.pool.query("DELETE FROM ContactLabels WHERE contactId = $1 AND labelId = $2 ", [contactId, labelId])).rows;
-                return (contactLabel.length == 0) ? { message: 'ContactLabel removed' } : { message: 'Failed to remove contactLabel' };
+                const contactLabel = (yield db_1.db.delete.table('ContactLabels').where('contactId', '=', contactId).delete()).rowCount;
+                return (contactLabel == 1) ? { message: 'Contact label removed successfully' } : { message: 'Failed to remove contact label' };
+            }
+            catch (err) {
+                throw err;
+            }
+        });
+    }
+    static deleteByLabelId(labelId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const contactLabel = (yield db_1.db.delete.table('ContactLabels').where('labelId', '=', labelId).delete()).rowCount;
+                return (contactLabel == 1) ? { message: 'Contact label removed successfully' } : { message: 'Failed to remove contact label' };
             }
             catch (err) {
                 throw err;

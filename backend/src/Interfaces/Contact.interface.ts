@@ -1,5 +1,4 @@
 export interface IContact {
-    companyId?: number | null;
     userId: number;
     contactId: number;
     contactPhoto?: string | null;
@@ -19,6 +18,9 @@ export interface IContact {
     internetCall?: string | null;
     customField?: string | null;
     event?: string | null;
+    company?: string | null;
+    jobTitle?: string | null;
+    department?: string | null;
     createdAt?: Date | null;
     modifiedAt?: Date | null;
 }

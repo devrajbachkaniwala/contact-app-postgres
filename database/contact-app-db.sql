@@ -28,6 +28,9 @@ CREATE TABLE Contacts (
   relationship VARCHAR(10),
   chat VARCHAR(200),
   internetCall VARCHAR(100),
+  company VARCHAR(150),
+  jobTitle VARCHAR(150),
+  department VARCHAR(150),
   createdAt DATE DEFAULT NOW(),
   modifiedAt DATE,
   customField VARCHAR(100),
@@ -63,17 +66,6 @@ CREATE TABLE ContactTelephones (
   CONSTRAINT FK_ContactTelephones_Contacts FOREIGN KEY(contactId) REFERENCES Contacts(contactId) ON DELETE CASCADE
 );
 
-
-CREATE TABLE ContactCompanies (
-  companyId BIGSERIAL PRIMARY KEY,
-  company VARCHAR(150),
-  jobTitle VARCHAR(150),
-  department VARCHAR(150),
-  createdAt DATE DEFAULT NOW(),
-  modifiedAt DATE
-);
-
-
 CREATE TABLE ContactEmailAddresses (
   contactId BIGINT NOT NULL,
   emailAddressId BIGSERIAL PRIMARY KEY,
@@ -82,7 +74,6 @@ CREATE TABLE ContactEmailAddresses (
   modifiedAt DATE,
   CONSTRAINT FK_ContactEmailAddresses_Contacts FOREIGN KEY(contactId) REFERENCES Contacts(contactId) ON DELETE CASCADE
 );
-
 
 CREATE TABLE ContactNotes (
   contactId BIGINT NOT NULL,
