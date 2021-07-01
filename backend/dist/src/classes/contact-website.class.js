@@ -9,14 +9,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ContactNote = void 0;
+exports.ContactWebsite = void 0;
 const db_1 = require("../database/db");
-class ContactNote {
-    static get(noteId) {
+class ContactWebsite {
+    static get(websiteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactNote = (yield db_1.db.read.columns('*').tables('ContactNotes').where('noteId', '=', noteId).get()).rows;
-                return contactNote;
+                const contactWebsite = (yield db_1.db.read.columns('*').tables('ContactWebsites').where('websiteId', '=', websiteId).get()).rows;
+                return contactWebsite;
             }
             catch (err) {
                 throw new Error(err);
@@ -26,8 +26,8 @@ class ContactNote {
     static getByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactNote = (yield db_1.db.read.columns('*').tables('ContactNotes').where('contactId', '=', contactId).get()).rows;
-                return contactNote;
+                const contactWebsite = (yield db_1.db.read.columns('*').tables('ContactWebsites').where('contactId', '=', contactId).get()).rows;
+                return contactWebsite;
             }
             catch (err) {
                 throw new Error(err);
@@ -37,41 +37,41 @@ class ContactNote {
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactNote = (yield db_1.db.read.columns('*').tables('ContactNotes').get()).rows;
-                return contactNote;
+                const contactWebsite = (yield db_1.db.read.columns('*').tables('ContactWebsites').get()).rows;
+                return contactWebsite;
             }
             catch (err) {
                 throw new Error(err);
             }
         });
     }
-    static create(contactNote) {
+    static create(contactWebsite) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const newContactNote = (yield db_1.db.write.table('ContactNotes').insert(contactNote).execute()).rowCount;
-                return (newContactNote == 1) ? { message: 'Contact note created successfully', result: true } : { message: 'Failed to create contact note', result: false };
+                const newContactWebsite = (yield db_1.db.write.table('ContactWebsites').insert(contactWebsite).execute()).rowCount;
+                return (newContactWebsite == 1) ? { message: 'Contact website added successfully', result: true } : { message: 'Failed to add contact website', result: false };
             }
             catch (err) {
                 throw new Error(err);
             }
         });
     }
-    static update(contactNote) {
+    static update(contactWebsite) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const updatedContactNote = (yield db_1.db.update.table('ContactNotes').update(contactNote).where('noteId', '=', contactNote.noteId).execute()).rowCount;
-                return (updatedContactNote == 1) ? { message: 'Contact note updated successfully', result: true } : { message: 'Failed to update contact note', result: false };
+                const updateContactWebsite = (yield db_1.db.update.table('ContactWebsites').update(contactWebsite).where('websiteId', '=', contactWebsite.websiteId).execute()).rowCount;
+                return (updateContactWebsite == 1) ? { message: 'Contact website updated successfully', result: true } : { message: 'Failed to update contact website', result: false };
             }
             catch (err) {
                 throw new Error(err);
             }
         });
     }
-    static delete(noteId) {
+    static delete(websiteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const contactNote = (yield db_1.db.delete.table('ContactNotes').where('noteId', '=', noteId).delete()).rowCount;
-                return (contactNote == 1) ? { message: 'Contact note deleted successfully', result: true } : { message: 'Failed to delete contact note', result: false };
+                const contactWebsite = (yield db_1.db.delete.table('ContactWebsites').where('websiteId', '=', websiteId).delete()).rowCount;
+                return (contactWebsite == 1) ? { message: 'Contact website deleted successfully', result: true } : { message: 'Failed to delete contact website', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -79,5 +79,5 @@ class ContactNote {
         });
     }
 }
-exports.ContactNote = ContactNote;
-//# sourceMappingURL=contact-note.class.js.map
+exports.ContactWebsite = ContactWebsite;
+//# sourceMappingURL=contact-website.class.js.map

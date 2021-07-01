@@ -22,6 +22,17 @@ class Label {
             }
         });
     }
+    static getByUserId(userId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const label = (yield db_1.db.read.columns('*').tables('Labels').where('userId', '=', userId).get()).rows;
+                return label;
+            }
+            catch (err) {
+                throw err;
+            }
+        });
+    }
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -37,7 +48,7 @@ class Label {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const newLabel = (yield db_1.db.write.table('Labels').insert(label).execute()).rowCount;
-                return (newLabel == 1) ? { message: 'New label created successfully' } : { message: 'Failed to create label' };
+                return (newLabel == 1) ? { message: 'New label created successfully', result: true } : { message: 'Failed to create label', result: false };
             }
             catch (err) {
                 throw err;
@@ -48,7 +59,7 @@ class Label {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const updatedLabel = (yield db_1.db.update.table('Labels').update(label).where('labelId', '=', label.labelId).execute()).rowCount;
-                return (updatedLabel == 1) ? { message: 'Label updated successfully' } : { message: 'Failed to update label' };
+                return (updatedLabel == 1) ? { message: 'Label updated successfully', result: true } : { message: 'Failed to update label', result: false };
             }
             catch (err) {
                 throw err;
@@ -59,7 +70,7 @@ class Label {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const label = (yield db_1.db.delete.table('Labels').where('labelId', '=', labelId).delete()).rowCount;
-                return (label == 0) ? { message: 'Label deleted' } : { message: 'Failed to delete label' };
+                return (label == 0) ? { message: 'Label deleted successfully', result: true } : { message: 'Failed to delete label', result: false };
             }
             catch (err) {
                 throw err;

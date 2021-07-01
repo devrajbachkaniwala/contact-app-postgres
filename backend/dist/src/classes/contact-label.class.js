@@ -51,7 +51,7 @@ class ContactLabel {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const assignContactLabel = (yield db_1.db.write.table('ContactLabels').insert(contactLabel).execute()).rowCount;
-                return (assignContactLabel == 1) ? { message: 'Contact label created successfully' } : { message: 'Failed to create Contact label' };
+                return (assignContactLabel == 1) ? { message: 'Contact label created successfully', result: true } : { message: 'Failed to create Contact label', result: false };
             }
             catch (err) {
                 throw err;
@@ -63,7 +63,7 @@ class ContactLabel {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contactLabel = (yield db_1.db.delete.table('ContactLabels').where('contactId', '=', contactId).delete()).rowCount;
-                return (contactLabel == 1) ? { message: 'Contact label removed successfully' } : { message: 'Failed to remove contact label' };
+                return (contactLabel == 1) ? { message: 'Contact label removed successfully', result: true } : { message: 'Failed to remove contact label', result: false };
             }
             catch (err) {
                 throw err;
@@ -74,7 +74,7 @@ class ContactLabel {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contactLabel = (yield db_1.db.delete.table('ContactLabels').where('labelId', '=', labelId).delete()).rowCount;
-                return (contactLabel == 1) ? { message: 'Contact label removed successfully' } : { message: 'Failed to remove contact label' };
+                return (contactLabel == 1) ? { message: 'Contact label removed successfully', result: true } : { message: 'Failed to remove contact label', result: false };
             }
             catch (err) {
                 throw err;

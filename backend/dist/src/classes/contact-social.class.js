@@ -23,6 +23,17 @@ class ContactSocial {
             }
         });
     }
+    static getByContactId(contactId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const contactSocial = (yield db_1.db.read.columns('*').tables('ContactSocials').where('contactId', '=', contactId).get()).rows;
+                return contactSocial;
+            }
+            catch (err) {
+                throw new Error(err);
+            }
+        });
+    }
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -38,7 +49,7 @@ class ContactSocial {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const newContactSocial = (yield db_1.db.write.table('ContactSocials').insert(contactSocial).execute()).rowCount;
-                return (newContactSocial == 1) ? { message: 'Contact social added successfully' } : { message: 'Failed to add contact social' };
+                return (newContactSocial == 1) ? { message: 'Contact social added successfully', result: true } : { message: 'Failed to add contact social', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -49,7 +60,7 @@ class ContactSocial {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const updatedContactSocial = (yield db_1.db.update.table('ContactSocials').update(contactSocial).where('socialId', '=', contactSocial.socialId).execute()).rowCount;
-                return (updatedContactSocial == 1) ? { message: 'Contact social updated successfully' } : { message: 'Failed to update contact social' };
+                return (updatedContactSocial == 1) ? { message: 'Contact social updated successfully', result: true } : { message: 'Failed to update contact social', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -60,7 +71,7 @@ class ContactSocial {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contactSocial = (yield db_1.db.delete.table('ContactSocials').where('socialId', '=', socialId).delete()).rowCount;
-                return (contactSocial == 1) ? { message: 'Contact social deleted successfully' } : { message: 'Failed to delete contact social' };
+                return (contactSocial == 1) ? { message: 'Contact social deleted successfully', result: true } : { message: 'Failed to delete contact social', result: false };
             }
             catch (err) {
                 throw new Error(err);

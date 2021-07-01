@@ -18,6 +18,14 @@ import { IContactSocial } from './src/interfaces/contact-social.interface';
 import { ContactSocial } from './src/classes/contact-social.class';
 import { IContactNote } from './src/interfaces/contact-note.interface';
 import { ContactNote } from './src/classes/contact-note.class';
+import { IContactEmailAddress } from './src/interfaces/contact-email-address.interface';
+import { ContactEmailAddress } from './src/classes/contact-email-address.class';
+import { IContactWebsite } from './src/interfaces/contact-website.interface';
+import { ContactWebsite } from './src/classes/contact-website.class';
+
+import { registerRoute } from './src/routes/register.route';
+import { loginRoute} from './src/routes/login.route';
+import { router as contact } from './src/routes/contact.route';
 
 config();
 
@@ -29,9 +37,14 @@ app.use(express.json());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true}));
 
+app.use('/register', registerRoute);
+app.use('/login', loginRoute);
+app.use('/contacts', contact);
+
+
 app.get('/', (req: express.Request, res: express.Response) => {    
 
-    const contactLabel: IContactLabel = {
+    /* const contactLabel: IContactLabel = {
         contactId: 2,
         labelId:  3
     }
@@ -67,10 +80,22 @@ app.get('/', (req: express.Request, res: express.Response) => {
         content: 'UPDATE 3'
     }
 
-    ContactNote.list().then( result => {
+    const contactEmailAddress: IContactEmailAddress = {
+        contactId: 2,
+        emailAddressId: 3,
+        email: 'update3@test33'
+    }
+
+    const contactWebsite: IContactWebsite = {
+        contactId: 2,
+        websiteId: 3,
+        websiteName: 'UPDATE  33333'
+    }
+
+    ContactWebsite.list().then( result => {
         res.json(result);
-    })
-    
+    }) */
+    res.send('Hello from server')
 
 
 });

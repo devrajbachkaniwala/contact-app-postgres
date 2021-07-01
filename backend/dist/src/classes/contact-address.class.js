@@ -23,6 +23,17 @@ class ContactAddress {
             }
         });
     }
+    static getByContactId(contactId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const contactAddress = (yield db_1.db.read.columns('*').tables('ContactAddresses').where('contactId', '=', contactId).get()).rows;
+                return contactAddress;
+            }
+            catch (err) {
+                throw new Error(err);
+            }
+        });
+    }
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -38,7 +49,7 @@ class ContactAddress {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const newContactAddress = (yield db_1.db.write.table('ContactAddresses').insert(contactAddress).execute()).rowCount;
-                return (newContactAddress == 1) ? { message: 'New contact address created successfully' } : { message: 'Failed to create contact address' };
+                return (newContactAddress == 1) ? { message: 'New contact address created successfully', result: true } : { message: 'Failed to create contact address', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -49,7 +60,7 @@ class ContactAddress {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const updatedContactAddress = (yield db_1.db.update.table('ContactAddresses').update(contactAddress).where('addressId', '=', contactAddress.contactId).execute()).rowCount;
-                return (updatedContactAddress == 1) ? { message: 'Contact address updated successfully' } : { message: 'Failed to update contact address' };
+                return (updatedContactAddress == 1) ? { message: 'Contact address updated successfully', result: true } : { message: 'Failed to update contact address', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -60,7 +71,7 @@ class ContactAddress {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contactAddress = (yield db_1.db.delete.table('ContactAddresses').where('addressId', '=', addressId).delete()).rowCount;
-                return (contactAddress == 1) ? { message: 'Contact address deleted successfully' } : { message: 'Failed to delete contact address' };
+                return (contactAddress == 1) ? { message: 'Contact address deleted successfully', result: true } : { message: 'Failed to delete contact address', result: false };
             }
             catch (err) {
                 throw new Error(err);

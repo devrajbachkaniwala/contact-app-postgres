@@ -33,33 +33,33 @@ class Contact {
             }
         });
     }
-    static create(userId, contact) {
+    static create(contact) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const newContact = (yield db_1.db.write.table('Contacts').insert(contact).execute()).rowCount;
-                return (newContact == 1) ? { message: 'New contact created successfully' } : { message: 'Failed to create contact' };
+                return (newContact == 1) ? { message: 'New contact created successfully', result: true } : { message: 'Failed to create contact', result: false };
             }
             catch (err) {
                 throw err;
             }
         });
     }
-    static update(userId, contact) {
+    static update(contact) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const updatedContact = (yield db_1.db.update.table('Contacts').update(contact).where('contactId', '=', contact.contactId).execute()).rowCount;
-                return (updatedContact == 1) ? { message: 'Contact updated successfully' } : { message: 'Failed to update contact' };
+                return (updatedContact == 1) ? { message: 'Contact updated successfully', result: true } : { message: 'Failed to update contact', result: false };
             }
             catch (err) {
                 throw err;
             }
         });
     }
-    static delete(userId, contactId) {
+    static delete(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contact = (yield db_1.db.delete.table('Contacts').where('contactId', '=', contactId).delete()).rowCount;
-                return (contact == 0) ? { message: 'Contact deleted successfully' } : { message: 'Failed to delete contact' };
+                return (contact == 0) ? { message: 'Contact deleted successfully', result: true } : { message: 'Failed to delete contact', result: false };
             }
             catch (err) {
                 throw err;

@@ -24,6 +24,17 @@ class ContactTelephone {
             }
         });
     }
+    static getByContactId(contactId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const contactTelephone = (yield db_1.db.read.columns('*').tables('ContactTelephones').where('contactId', '=', contactId).get()).rows;
+                return contactTelephone;
+            }
+            catch (err) {
+                throw new Error(err);
+            }
+        });
+    }
     // returns list of all contactTelephone
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
@@ -41,7 +52,7 @@ class ContactTelephone {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const newContactTelephone = (yield db_1.db.write.table('ContactTelephones').insert(contactTelephone).execute()).rowCount;
-                return (newContactTelephone == 1) ? { message: 'Contact telephone created successfully' } : { message: ' Failed to create contact telephone' };
+                return (newContactTelephone == 1) ? { message: 'Contact telephone created successfully', result: true } : { message: ' Failed to create contact telephone', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -53,7 +64,7 @@ class ContactTelephone {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const updatedContactTelephone = (yield db_1.db.update.table('ContactTelephones').update(contactTelephone).where('telephoneId', '=', contactTelephone.telephoneId).execute()).rowCount;
-                return (updatedContactTelephone == 1) ? { message: 'Contact telephone updated successfully' } : { message: ' Failed to update contact telephone' };
+                return (updatedContactTelephone == 1) ? { message: 'Contact telephone updated successfully', result: true } : { message: ' Failed to update contact telephone', result: false };
             }
             catch (err) {
                 throw new Error(err);
@@ -65,7 +76,7 @@ class ContactTelephone {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const contactTelephone = (yield db_1.db.delete.table('ContactTelephones').where('telephoneId', '=', telephoneId).delete()).rowCount;
-                return (contactTelephone == 1) ? { message: 'Contact telephone deleted successfully' } : { message: 'Failed to delete contact telephone' };
+                return (contactTelephone == 1) ? { message: 'Contact telephone deleted successfully', result: true } : { message: 'Failed to delete contact telephone', result: false };
             }
             catch (err) {
                 throw new Error(err);

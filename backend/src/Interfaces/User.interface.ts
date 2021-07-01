@@ -17,6 +17,7 @@ export interface IUpdateUser extends ICreateUser {
 }
 
 export interface ILoginUser {
+    userId?: number;
     email: string;
     password: string;
 }
