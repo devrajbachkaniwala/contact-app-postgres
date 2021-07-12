@@ -12,7 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactTelephone = void 0;
 const db_1 = require("../database/db");
 class ContactTelephone {
-    // returns contactTelephone by telephone id
+    // returns a specific contactTelephone using its telephoneId
     static get(telephoneId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -24,6 +24,7 @@ class ContactTelephone {
             }
         });
     }
+    // returns a specific contactTelephone using contactId
     static getByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -35,7 +36,7 @@ class ContactTelephone {
             }
         });
     }
-    // returns list of all contactTelephone
+    // returns a list of contactTelephones
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -47,7 +48,7 @@ class ContactTelephone {
             }
         });
     }
-    // create new contactTelephone 
+    // create a new contactTelephone 
     static create(contactTelephone) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -59,7 +60,7 @@ class ContactTelephone {
             }
         });
     }
-    // update contactTelephone 
+    // update an existing contactTelephone 
     static update(contactTelephone) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -71,7 +72,7 @@ class ContactTelephone {
             }
         });
     }
-    // delete contactTelephone by telephone id
+    // delete a specific contactTelephone using its telephoneId
     static delete(telephoneId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

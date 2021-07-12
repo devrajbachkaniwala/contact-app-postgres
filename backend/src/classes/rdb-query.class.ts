@@ -377,7 +377,6 @@ export class WriteQuery extends RDBQuery {
     insert(data: Object): WriteQuery {
         let cols = [];
         let values = [];
-
         for(let key of Object.keys(data)) {
             cols.push(key);
             values.push(data[key]);

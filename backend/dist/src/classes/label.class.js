@@ -9,12 +9,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.LabelModel = void 0;
 const db_1 = require("../database/db");
 class Label {
-    static get(labelId) {
+    // returns a specific label of a particular user using its labelId and userId
+    static get(userId, labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const label = (yield db_1.db.read.columns('*').tables('Labels').where('labelId', '=', labelId).get()).rows;
+                const label = (yield db_1.db.read.columns('*').tables('Labels').where('userId', '=', userId).where('labelId', '=', labelId).get()).rows;
                 return label;
             }
             catch (err) {
@@ -22,6 +24,7 @@ class Label {
             }
         });
     }
+    // returns a specific label using userId
     static getByUserId(userId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -33,6 +36,7 @@ class Label {
             }
         });
     }
+    // returns a list of labels
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -44,10 +48,12 @@ class Label {
             }
         });
     }
+    // create a new label
     static create(label) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const newLabel = (yield db_1.db.write.table('Labels').insert(label).execute()).rowCount;
+                //const newLabel: number = (await db.write.table('Labels').insert(label).execute()).rowCount;
+                const newLabel = (yield db_1.pool.query('INSERT INTO Labels(userId, labelId, labelName) VALUES ($1, $2, $3)', [label.userId, label.labelId, label.labelName])).rowCount;
                 return (newLabel == 1) ? { message: 'New label created successfully', result: true } : { message: 'Failed to create label', result: false };
             }
             catch (err) {
@@ -55,10 +61,12 @@ class Label {
             }
         });
     }
-    static update(label) {
+    // update an existing label
+    static update(userId, label) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const updatedLabel = (yield db_1.db.update.table('Labels').update(label).where('labelId', '=', label.labelId).execute()).rowCount;
+                //const updatedLabel: number = (await db.update.table('Labels').update(label).where('labelId', '=', label.labelId).execute()).rowCount;
+                const updatedLabel = (yield db_1.pool.query('UPDATE Labels SET labelName = $1, modifiedAt = $2 WHERE userId = $3 AND labelId = $4', [label.labelName, label.modifiedAt, userId, label.labelId])).rowCount;
                 return (updatedLabel == 1) ? { message: 'Label updated successfully', result: true } : { message: 'Failed to update label', result: false };
             }
             catch (err) {
@@ -66,11 +74,12 @@ class Label {
             }
         });
     }
-    static delete(labelId) {
+    // delete a specific label using its labelId
+    static delete(userId, labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const label = (yield db_1.db.delete.table('Labels').where('labelId', '=', labelId).delete()).rowCount;
-                return (label == 0) ? { message: 'Label deleted successfully', result: true } : { message: 'Failed to delete label', result: false };
+                const label = (yield db_1.db.delete.table('Labels').where('userId', '=', userId).where('labelId', '=', labelId).delete()).rowCount;
+                return (label == 1) ? { message: 'Label deleted successfully', result: true } : { message: 'Failed to delete label', result: false };
             }
             catch (err) {
                 throw err;
@@ -79,4 +88,14 @@ class Label {
     }
 }
 exports.default = Label;
+class LabelModel {
+    constructor(userId, labelId, labelName, createdAt, modifiedAt) {
+        this.userId = userId;
+        this.labelId = labelId;
+        this.labelName = labelName;
+        this.createdAt = createdAt;
+        this.modifiedAt = modifiedAt;
+    }
+}
+exports.LabelModel = LabelModel;
 //# sourceMappingURL=label.class.js.map

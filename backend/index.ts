@@ -26,6 +26,7 @@ import { ContactWebsite } from './src/classes/contact-website.class';
 import { registerRoute } from './src/routes/register.route';
 import { loginRoute} from './src/routes/login.route';
 import { router as contact } from './src/routes/contact.route';
+import { labelRoute } from './src/routes/label.route';
 
 config();
 
@@ -40,6 +41,7 @@ app.use(bodyParser.urlencoded({ extended: true}));
 app.use('/register', registerRoute);
 app.use('/login', loginRoute);
 app.use('/contacts', contact);
+app.use('/labels', labelRoute);
 
 
 app.get('/', (req: express.Request, res: express.Response) => {    

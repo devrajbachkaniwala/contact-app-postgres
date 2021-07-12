@@ -7,8 +7,9 @@ import { ContactNote } from "../classes/contact-note.class";
 import { ContactSocial } from "../classes/contact-social.class";
 import { ContactTelephone } from "../classes/contact-telephone.class";
 import { ContactWebsite } from "../classes/contact-website.class";
-import Contact from "../classes/contact.class";
+import Contact, { ContactAddressModel, ContactEmailAddressModel, ContactLabelModel, ContactModel, ContactNoteModel, ContactSocialModel, ContactTelephoneModel, ContactWebsiteModel } from "../classes/contact.class";
 import Label from "../classes/label.class";
+import { db } from "../database/db";
 import { IContactAddress } from "../interfaces/contact-address.interface";
 import { IContactEmailAddress } from "../interfaces/contact-email-address.interface";
 import { IContactLabel } from "../interfaces/contact-label.interface";
@@ -37,33 +38,10 @@ export const router = Router();
 router.get('/', verifyToken, async (req, res) => {
     try {
         const userId: number = res.locals.user.subject;
-        const contact: IContact[] = await Contact.list(userId);
-
-        const contacts = [];
-
-        for (let c of contact) {
-            const contactTelephones: IContactTelephone[] = await ContactTelephone.getByContactId(c.contactid);
-            const contactLables: IContactLabel[] = await ContactLabel.getByContactID(c.contactid);
-
-            let completeContact = {
-                contact: c,
-                contactTelephones,
-                labels : []
-            }
-
-            for (let contactLabel of contactLables) {
-                if (contactLabel.contactid == c.contactid) {
-                    const labels: ILabel[] = await Label.get(contactLabel.labelid);
-                    completeContact['labels'] = labels;
-                }
-            }
-
-            contacts.push(completeContact);
-        }
-
+        const contacts = await Contact.listContacts(userId);
         res.json(contacts);
     } catch (err) {
-        console.log(err);
+        throw new Error(err);
     }
 });
 
@@ -79,35 +57,9 @@ router.get('/:contactId', verifyToken, async (req, res) => {
     try {
         const userId: number = res.locals.user.subject;
         const contactId: number = +req.params.contactId;
-        const contact: IContact[] = await Contact.get(userId, contactId);
-        const contactTelephones: IContactTelephone[] = await ContactTelephone.getByContactId(contactId);
-        const contactAddresses: IContactAddress[] = await ContactAddress.getByContactId(contactId);
-        const contactSocials: IContactSocial[] = await ContactSocial.getByContactId(contactId);
-        const contactNotes: IContactNote[] = await ContactNote.getByContactId(contactId);
-        const contactEmailAddresses: IContactEmailAddress[] = await ContactEmailAddress.getByContactId(contactId);
-        const contactWebsites: IContactWebsite[] = await ContactWebsite.getByContactId(contactId);
 
-        const contactLabels: IContactLabel[] = await ContactLabel.getByContactID(contactId);
-        const labelId: number[] = contactLabels.map(item => item.labelid);
-        const labels: ILabel[] = [];
-
-        for (let id of labelId) {
-            labels.push((await Label.get(id)).pop());
-        }
-
-
-        const completeContact = {
-            contact: contact.shift(),
-            contactTelephones,
-            contactAddresses,
-            contactSocials,
-            contactNotes,
-            contactEmailAddresses,
-            contactWebsites,
-            labels
-        }
-
-        res.json(completeContact);
+        const contact = await Contact.getContact(userId, contactId);
+        res.json(contact);
     } catch (err) {
         throw new Error(err);
     }
@@ -122,58 +74,125 @@ router.get('/:contactId', verifyToken, async (req, res) => {
 */
 router.post('/', verifyToken, async (req, res) => {
     try {
-        const contact: IContact = {
-            userId : res.locals.user.subject,
-            ...req.body.contact
-        }
-        const newContact: {
-            contact: IContact,
-            contactTelephones: IContactTelephone[],
-            contactAddresses: IContactAddress[],
-            contactSocials: IContactSocial[],
-            conatctNotes: IContactNote[],
-            contactEmailAddresses: IContactEmailAddress[],
-            contactWebsites: IContactWebsite[],
-            contactLabels: IContactLabel[]
-        } = {
-            contact,
-            contactTelephones : req.body.contactTelephones && [ ...req.body.contactTelephones ],
-            contactAddresses : req.body.contactAddresses && [ ...req.body.contactAddresses ],
-            contactSocials : req.body.contactSocials && [ ...req.body.contactSocials ],
-            conatctNotes : req.body.conatctNotes && [ ...req.body.conatctNotes ],
-            contactEmailAddresses : req.body.contactEmailAddresses && [ ...req.body.contactEmailAddresses ],
-            contactWebsites : req.body.contactWebsites && [ ...req.body.contactWebsites ],
-            contactLabels : req.body.contactSocials && [ ...req.body.contactLabels ]
-        };
+        const contact = req.body.contact;
+        const newContact = contactConstructor(contact);
 
-        const contactResult: { message: string, result: boolean } = await Contact.create(newContact.contact);
-
-
-        if(newContact.contactTelephones && newContact.contactTelephones.length) {
-            newContact.contactTelephones.forEach( async telephone => {
-                const contactTelephone = await ContactTelephone.create(telephone);
-                if(!contactTelephone.result) {
-                    throw new Error(contactTelephone.message);
-                }
-            });
-        }
-
-        if( newContact.contactAddresses && newContact.contactAddresses.length) {
-            newContact.contactAddresses.forEach(async address => {
-                const contactAddress = await ContactAddress.create(address);
-                if(!contactAddress.result) {
-                    throw new Error(contactAddress.message);
-                }
-            });
-        }
-
-        
-
-        
-
-        res.json(contactResult.message);
-
+        const result = await Contact.createContact(newContact);
+        res.json(result);
     } catch (err) {
+        throw new Error(err);
+    }
+});
+
+/* 
+ *
+ * contactConstructor function takes contact and strictly makes contact object through its appropriately models
+ * 
+ * 
+*/
+function contactConstructor(contact, isUpdating?: boolean) {
+    const newContact = new ContactModel(contact.userId, contact.contactId, contact.contactPhoto, contact.prefix, contact.firstName, contact.middleName, contact.lastName, contact.suffix, contact.phoneticFirst, contact.phoneticMiddle, contact.phoneticLast, contact.nickname, contact.fileAs, contact.dateOfBirth, contact.relationship, contact.chat, contact.internetCall, contact.customField, contact.event, contact.company, contact.jobTitle, contact.department);
+    ( isUpdating ) ? newContact.modifiedat = new Date() : '' ;
+    let contactTelephones = [];
+    let contactAddresses = [];
+    let contactEmailAddresses = [];
+    let contactNotes = [];
+    let contactSocials = [];
+    let contactWebsites = [];
+    let contactLabels = [];
+
+    for (let i = 0; i < contact.telephones?.length; i++) {
+        const telephones = contact.telephones[i];
+        const telephone = new ContactTelephoneModel(telephones.contactId, telephones.telephoneId, telephones.countryCode, telephones.number);
+        ( isUpdating ) ? telephone.modifiedat = new Date() : '' ;
+        contactTelephones.push(telephone);
+    }
+
+    for (let i = 0; i < contact.addresses?.length; i++) {
+        const addresses = contact.addresses[i];
+        const address = new ContactAddressModel(addresses.contactId, addresses.addressId, addresses.country, addresses.state, addresses.city, addresses.streetAddress, addresses.streetAddressLine2, addresses.pincode, addresses.poBox, addresses.type);
+        ( isUpdating ) ? address.modifiedat = new Date() : '' ;
+        contactAddresses.push(address);
+    }
+
+    for (let i = 0; i < contact.emailAddresses?.length; i++) {
+        const emailAddresses = contact.emailAddresses[i];
+        const emailAddress = new ContactEmailAddressModel(emailAddresses.contactId, emailAddresses.emailAddressId, emailAddresses.email);
+        ( isUpdating ) ? emailAddress.modifiedat = new Date() : '' ;
+        contactEmailAddresses.push(emailAddress);
+    }
+
+    for (let i = 0; i < contact.notes?.length; i++) {
+        const notes = contact.notes[i];
+        const note = new ContactNoteModel(notes.contactId, notes.noteId, notes.content);
+        ( isUpdating ) ? note.modifiedat = new Date() : '' ;
+        contactNotes.push(note);
+    }
+
+    for (let i = 0; i < contact.socials?.length; i++) {
+        const socials = contact.socials[i];
+        const social = new ContactSocialModel(socials.contactId, socials.socialId, socials.whatsapp, socials.facebook, socials.twitter, socials.snapchat);
+        contactSocials.push(social);
+    }
+
+    for (let i = 0; i < contact.websites?.length; i++) {
+        const websites = contact.websites[i];
+        const website = new ContactWebsiteModel(websites.contactId, websites.websiteId, websites.websiteName);
+        ( isUpdating ) ? website.modifiedat = new Date() : '' ;
+        contactWebsites.push(website);
+    }
+
+    for (let i = 0; i < contact.labels?.length; i++) {
+        const labels = contact.labels[i];
+        const contactLabel = new ContactLabelModel(labels.contactId, labels.labelId);
+        contactLabels.push(contactLabel);
+    }
+
+    return {
+        newContact,
+        contactTelephones,
+        contactAddresses,
+        contactEmailAddresses,
+        contactNotes,
+        contactSocials,
+        contactWebsites,
+        contactLabels
+    };
+}
+
+/* 
+ *
+ * Update an existing contact
+ * 
+ * 
+*/
+router.put('/:contactId', verifyToken, async (req, res) => {
+    try {
+        const contactId: number = +req.params.contactId;
+        const userId: number = res.locals.user.subject;
+        const contact = req.body.contact;
+        const updatedContact = contactConstructor(contact, true);
+    
+        const result = await Contact.updateContact(userId, contactId, updatedContact);
+        res.json(result);
+    } catch(err) {
+        throw new Error(err);
+    }
+});
+
+/* 
+ *
+ * Delete a specific contact using contactId
+ * 
+ * 
+*/
+router.delete('/:contactId', verifyToken, async (req, res) => {
+    try {
+        const userId: number = res.locals.user.subject;
+        const contactId: number = +req.params.contactId;
+        const result = await Contact.delete(userId, contactId);
+        res.json(result);
+    } catch(err) {
         throw new Error(err);
     }
 });
@@ -184,7 +203,7 @@ router.post('/', verifyToken, async (req, res) => {
  * or if it is incorrect then invalid token is sent to the client or if token is null then unauthorizeed user it sent to the client
  * 
 */
-function verifyToken(req, res, next) {
+export function verifyToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token: string = authHeader && authHeader.split(' ')[1];
 

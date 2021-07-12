@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactWebsite = void 0;
 const db_1 = require("../database/db");
 class ContactWebsite {
+    // returns a specific contactWebsite using its websiteId
     static get(websiteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -23,6 +24,7 @@ class ContactWebsite {
             }
         });
     }
+    // returns a specific contactWebsite using contactId 
     static getByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -34,6 +36,7 @@ class ContactWebsite {
             }
         });
     }
+    // returns a list of contactWebsites
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -45,6 +48,7 @@ class ContactWebsite {
             }
         });
     }
+    // create a new contactWebsite
     static create(contactWebsite) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -56,6 +60,7 @@ class ContactWebsite {
             }
         });
     }
+    // update an existing contactWebsite
     static update(contactWebsite) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -67,6 +72,7 @@ class ContactWebsite {
             }
         });
     }
+    // delete a specific contactWebsite using its websiteId
     static delete(websiteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

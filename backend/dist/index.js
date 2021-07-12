@@ -10,6 +10,7 @@ const body_parser_1 = __importDefault(require("body-parser"));
 const register_route_1 = require("./src/routes/register.route");
 const login_route_1 = require("./src/routes/login.route");
 const contact_route_1 = require("./src/routes/contact.route");
+const label_route_1 = require("./src/routes/label.route");
 dotenv_1.config();
 const app = express_1.default();
 const PORT = process.env.PORT;
@@ -20,6 +21,7 @@ app.use(body_parser_1.default.urlencoded({ extended: true }));
 app.use('/register', register_route_1.registerRoute);
 app.use('/login', login_route_1.loginRoute);
 app.use('/contacts', contact_route_1.router);
+app.use('/labels', label_route_1.labelRoute);
 app.get('/', (req, res) => {
     /* const contactLabel: IContactLabel = {
         contactId: 2,

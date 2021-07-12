@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 const db_1 = require("../database/db");
 class ContactLabel {
-    //Get list of contactId of a particular labelId that belongs to a user
+    // returns a list of contactLabel of a particular contactId 
     static getByContactID(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -23,6 +23,7 @@ class ContactLabel {
             }
         });
     }
+    // returns a list of contactLabel of a particular labelId
     static getByLabelId(labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -34,7 +35,7 @@ class ContactLabel {
             }
         });
     }
-    //Get list of labelId of a particular contactId that belongs to a user
+    // returns a list of contactLabel
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -46,7 +47,7 @@ class ContactLabel {
             }
         });
     }
-    //Assigns a label to a contact that belongs to a user
+    // assign label to a contact 
     static create(contactLabel) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -58,7 +59,7 @@ class ContactLabel {
             }
         });
     }
-    //Remove a label from that contact that belongs to a user
+    // remove label from a contact using contactId
     static deleteByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -70,6 +71,7 @@ class ContactLabel {
             }
         });
     }
+    // remove label from a contact using its labelId
     static deleteByLabelId(labelId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

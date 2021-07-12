@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactSocial = void 0;
 const db_1 = require("../database/db");
 class ContactSocial {
+    // returns a specific contactSocial using its socialId
     static get(socialId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -23,6 +24,7 @@ class ContactSocial {
             }
         });
     }
+    // returns a specific contactSocial using contactId
     static getByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -34,6 +36,7 @@ class ContactSocial {
             }
         });
     }
+    // returns a list of contactSocials
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -45,6 +48,7 @@ class ContactSocial {
             }
         });
     }
+    // create a new contactSocial
     static create(contactSocial) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -56,6 +60,7 @@ class ContactSocial {
             }
         });
     }
+    // update an existing contactSocial
     static update(contactSocial) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -67,6 +72,7 @@ class ContactSocial {
             }
         });
     }
+    // delete a specific contactSocial using its socialId
     static delete(socialId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

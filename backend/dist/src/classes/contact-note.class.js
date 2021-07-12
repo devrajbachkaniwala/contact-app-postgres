@@ -12,6 +12,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ContactNote = void 0;
 const db_1 = require("../database/db");
 class ContactNote {
+    // returns a specific contactNote using its noteId
     static get(noteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -23,6 +24,7 @@ class ContactNote {
             }
         });
     }
+    // returns a specific contactNote using contactId
     static getByContactId(contactId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -34,6 +36,7 @@ class ContactNote {
             }
         });
     }
+    // returns a list of contactNotes
     static list() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -45,6 +48,7 @@ class ContactNote {
             }
         });
     }
+    // create a new contactNote
     static create(contactNote) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -56,6 +60,7 @@ class ContactNote {
             }
         });
     }
+    // update an existing contactNote
     static update(contactNote) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
@@ -67,6 +72,7 @@ class ContactNote {
             }
         });
     }
+    // delete a specific contactNote using its noteId
     static delete(noteId) {
         return __awaiter(this, void 0, void 0, function* () {
             try {

@@ -1,4 +1,23 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -12,18 +31,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.router = void 0;
+exports.verifyToken = exports.router = void 0;
 const express_1 = require("express");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
-const contact_address_class_1 = require("../classes/contact-address.class");
-const contact_email_address_class_1 = require("../classes/contact-email-address.class");
-const contact_label_class_1 = __importDefault(require("../classes/contact-label.class"));
-const contact_note_class_1 = require("../classes/contact-note.class");
-const contact_social_class_1 = require("../classes/contact-social.class");
-const contact_telephone_class_1 = require("../classes/contact-telephone.class");
-const contact_website_class_1 = require("../classes/contact-website.class");
-const contact_class_1 = __importDefault(require("../classes/contact.class"));
-const label_class_1 = __importDefault(require("../classes/label.class"));
+const contact_class_1 = __importStar(require("../classes/contact.class"));
 exports.router = express_1.Router();
 /*
  *
@@ -39,28 +50,11 @@ exports.router = express_1.Router();
 exports.router.get('/', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const userId = res.locals.user.subject;
-        const contact = yield contact_class_1.default.list(userId);
-        const contacts = [];
-        for (let c of contact) {
-            const contactTelephones = yield contact_telephone_class_1.ContactTelephone.getByContactId(c.contactid);
-            const contactLables = yield contact_label_class_1.default.getByContactID(c.contactid);
-            let completeContact = {
-                contact: c,
-                contactTelephones,
-                labels: []
-            };
-            for (let contactLabel of contactLables) {
-                if (contactLabel.contactid == c.contactid) {
-                    const labels = yield label_class_1.default.get(contactLabel.labelid);
-                    completeContact['labels'] = labels;
-                }
-            }
-            contacts.push(completeContact);
-        }
+        const contacts = yield contact_class_1.default.listContacts(userId);
         res.json(contacts);
     }
     catch (err) {
-        console.log(err);
+        throw new Error(err);
     }
 }));
 /*
@@ -75,30 +69,8 @@ exports.router.get('/:contactId', verifyToken, (req, res) => __awaiter(void 0, v
     try {
         const userId = res.locals.user.subject;
         const contactId = +req.params.contactId;
-        const contact = yield contact_class_1.default.get(userId, contactId);
-        const contactTelephones = yield contact_telephone_class_1.ContactTelephone.getByContactId(contactId);
-        const contactAddresses = yield contact_address_class_1.ContactAddress.getByContactId(contactId);
-        const contactSocials = yield contact_social_class_1.ContactSocial.getByContactId(contactId);
-        const contactNotes = yield contact_note_class_1.ContactNote.getByContactId(contactId);
-        const contactEmailAddresses = yield contact_email_address_class_1.ContactEmailAddress.getByContactId(contactId);
-        const contactWebsites = yield contact_website_class_1.ContactWebsite.getByContactId(contactId);
-        const contactLabels = yield contact_label_class_1.default.getByContactID(contactId);
-        const labelId = contactLabels.map(item => item.labelid);
-        const labels = [];
-        for (let id of labelId) {
-            labels.push((yield label_class_1.default.get(id)).pop());
-        }
-        const completeContact = {
-            contact: contact.shift(),
-            contactTelephones,
-            contactAddresses,
-            contactSocials,
-            contactNotes,
-            contactEmailAddresses,
-            contactWebsites,
-            labels
-        };
-        res.json(completeContact);
+        const contact = yield contact_class_1.default.getContact(userId, contactId);
+        res.json(contact);
     }
     catch (err) {
         throw new Error(err);
@@ -113,35 +85,114 @@ exports.router.get('/:contactId', verifyToken, (req, res) => __awaiter(void 0, v
 */
 exports.router.post('/', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const contact = Object.assign({ userId: res.locals.user.subject }, req.body.contact);
-        const newContact = {
-            contact,
-            contactTelephones: req.body.contactTelephones && [...req.body.contactTelephones],
-            contactAddresses: req.body.contactAddresses && [...req.body.contactAddresses],
-            contactSocials: req.body.contactSocials && [...req.body.contactSocials],
-            conatctNotes: req.body.conatctNotes && [...req.body.conatctNotes],
-            contactEmailAddresses: req.body.contactEmailAddresses && [...req.body.contactEmailAddresses],
-            contactWebsites: req.body.contactWebsites && [...req.body.contactWebsites],
-            contactLabels: req.body.contactSocials && [...req.body.contactLabels]
-        };
-        const contactResult = yield contact_class_1.default.create(newContact.contact);
-        if (newContact.contactTelephones && newContact.contactTelephones.length) {
-            newContact.contactTelephones.forEach((telephone) => __awaiter(void 0, void 0, void 0, function* () {
-                const contactTelephone = yield contact_telephone_class_1.ContactTelephone.create(telephone);
-                if (!contactTelephone.result) {
-                    throw new Error(contactTelephone.message);
-                }
-            }));
-        }
-        if (newContact.contactAddresses && newContact.contactAddresses.length) {
-            newContact.contactAddresses.forEach((address) => __awaiter(void 0, void 0, void 0, function* () {
-                const contactAddress = yield contact_address_class_1.ContactAddress.create(address);
-                if (!contactAddress.result) {
-                    throw new Error(contactAddress.message);
-                }
-            }));
-        }
-        res.json(contactResult.message);
+        const contact = req.body.contact;
+        const { newContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels } = contactConstructor(contact);
+        const result = yield contact_class_1.default.createContact(newContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels);
+        res.json(result);
+    }
+    catch (err) {
+        throw new Error(err);
+    }
+}));
+/*
+ *
+ * contactConstructor function takes contact and strictly makes contact object through its appropriately models
+ *
+ *
+*/
+function contactConstructor(contact, isUpdating) {
+    var _a, _b, _c, _d, _e, _f, _g;
+    const newContact = new contact_class_1.ContactModel(contact.userId, contact.contactId, contact.contactPhoto, contact.prefix, contact.firstName, contact.middleName, contact.lastName, contact.suffix, contact.phoneticFirst, contact.phoneticMiddle, contact.phoneticLast, contact.nickname, contact.fileAs, contact.dateOfBirth, contact.relationship, contact.chat, contact.internetCall, contact.customField, contact.event, contact.company, contact.jobTitle, contact.department);
+    (isUpdating) ? newContact.modifiedat = new Date() : '';
+    let contactTelephones = [];
+    let contactAddresses = [];
+    let contactEmailAddresses = [];
+    let contactNotes = [];
+    let contactSocials = [];
+    let contactWebsites = [];
+    let contactLabels = [];
+    for (let i = 0; i < ((_a = contact.telephones) === null || _a === void 0 ? void 0 : _a.length); i++) {
+        const telephones = contact.telephones[i];
+        const telephone = new contact_class_1.ContactTelephoneModel(telephones.contactId, telephones.telephoneId, telephones.countryCode, telephones.number);
+        (isUpdating) ? telephone.modifiedat = new Date() : '';
+        contactTelephones.push(telephone);
+    }
+    for (let i = 0; i < ((_b = contact.addresses) === null || _b === void 0 ? void 0 : _b.length); i++) {
+        const addresses = contact.addresses[i];
+        const address = new contact_class_1.ContactAddressModel(addresses.contactId, addresses.addressId, addresses.country, addresses.state, addresses.city, addresses.streetAddress, addresses.streetAddressLine2, addresses.pincode, addresses.poBox, addresses.type);
+        (isUpdating) ? address.modifiedat = new Date() : '';
+        contactAddresses.push(address);
+    }
+    for (let i = 0; i < ((_c = contact.emailAddresses) === null || _c === void 0 ? void 0 : _c.length); i++) {
+        const emailAddresses = contact.emailAddresses[i];
+        const emailAddress = new contact_class_1.ContactEmailAddressModel(emailAddresses.contactId, emailAddresses.emailAddressId, emailAddresses.email);
+        (isUpdating) ? emailAddress.modifiedat = new Date() : '';
+        contactEmailAddresses.push(emailAddress);
+    }
+    for (let i = 0; i < ((_d = contact.notes) === null || _d === void 0 ? void 0 : _d.length); i++) {
+        const notes = contact.notes[i];
+        const note = new contact_class_1.ContactNoteModel(notes.contactId, notes.noteId, notes.content);
+        (isUpdating) ? note.modifiedat = new Date() : '';
+        contactNotes.push(note);
+    }
+    for (let i = 0; i < ((_e = contact.socials) === null || _e === void 0 ? void 0 : _e.length); i++) {
+        const socials = contact.socials[i];
+        const social = new contact_class_1.ContactSocialModel(socials.contactId, socials.socialId, socials.whatsapp, socials.facebook, socials.twitter, socials.snapchat);
+        contactSocials.push(social);
+    }
+    for (let i = 0; i < ((_f = contact.websites) === null || _f === void 0 ? void 0 : _f.length); i++) {
+        const websites = contact.websites[i];
+        const website = new contact_class_1.ContactWebsiteModel(websites.contactId, websites.websiteId, websites.websiteName);
+        (isUpdating) ? website.modifiedat = new Date() : '';
+        contactWebsites.push(website);
+    }
+    for (let i = 0; i < ((_g = contact.labels) === null || _g === void 0 ? void 0 : _g.length); i++) {
+        const labels = contact.labels[i];
+        const contactLabel = new contact_class_1.ContactLabelModel(labels.contactId, labels.labelId);
+        contactLabels.push(contactLabel);
+    }
+    return {
+        newContact,
+        contactTelephones,
+        contactAddresses,
+        contactEmailAddresses,
+        contactNotes,
+        contactSocials,
+        contactWebsites,
+        contactLabels
+    };
+}
+/*
+ *
+ * Update an existing contact
+ *
+ *
+*/
+exports.router.put('/:contactId', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const contactId = +req.params.contactId;
+        //const userId: number = res.locals.user.subject;
+        const contact = req.body.contact;
+        const { newContact: updatedContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels } = contactConstructor(contact, true);
+        const result = yield contact_class_1.default.updateContact(contactId, updatedContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels);
+        res.json(result);
+    }
+    catch (err) {
+        throw new Error(err);
+    }
+}));
+/*
+ *
+ * Delete a specific contact using contactId
+ *
+ *
+*/
+exports.router.delete('/:contactId', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const userId = res.locals.user.subject;
+        const contactId = +req.params.contactId;
+        const result = yield contact_class_1.default.delete(userId, contactId);
+        res.json(result);
     }
     catch (err) {
         throw new Error(err);
@@ -169,4 +220,5 @@ function verifyToken(req, res, next) {
         next();
     });
 }
+exports.verifyToken = verifyToken;
 //# sourceMappingURL=contact.route.js.map
