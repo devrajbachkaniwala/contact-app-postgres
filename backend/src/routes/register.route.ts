@@ -44,7 +44,7 @@ registerRoute.post('/', async (req, res) => {
             subject: user.userId
         };
         
-        const token = jwt.sign(payload, 'secret key');
+        const token: string = jwt.sign(payload, 'secret key');
         res.json({ token });
     } catch (err) {
         throw new Error(err);

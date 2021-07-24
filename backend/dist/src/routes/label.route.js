@@ -102,7 +102,7 @@ exports.labelRoute.put('/:labelId', contact_route_1.verifyToken, (req, res) => _
         const label = req.body.label;
         const updatedLabel = new label_class_1.LabelModel(label.userId, label.labelId, label.labelName);
         updatedLabel.modifiedAt = new Date();
-        const updatedLabelResult = yield label_class_1.default.update(userId, updatedLabel);
+        const updatedLabelResult = yield label_class_1.default.update(userId, labelId, updatedLabel);
         res.json(updatedLabelResult);
     }
     catch (err) {

@@ -80,7 +80,8 @@ export default class Contact {
 
             while (totalContacts.rows.length) {
                 const contactId = totalContacts.rows.shift()?.contactid;
-                const contact = await pool.query(queryString, [contactId, contactId, contactId, contactId, contactId, contactId, contactId, userId, userId, contactId]);
+                //const contact = await pool.query(queryString, [ contactId, contactId, contactId, contactId, contactId, contactId, contactId, userId, userId, contactId ]);
+                const contact = await new Contact().getQuery(userId, contactId).get();
                 contacts.push(contact.rows.pop());
             }
 
@@ -90,10 +91,58 @@ export default class Contact {
         }
     }
 
+    private getQuery(userId: number, contactId: number) {
+        const telephoneQuery = db.read.columns(['contactTelephones.contactId', 'telephoneId', 'number', 'countrycode', 'contactTelephones.createdAt', 'contactTelephones.modifiedAt'])
+                                    .tables('ContactTelephones').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactTelephones.contactId' ]).where('ContactTelephones.contactId', '=', contactId).query;
+            
+        const telephonesQuery = db.read.columns('array_to_json(array_agg(telephones)) telephones').subquery(telephoneQuery.query, telephoneQuery.params, { afterFrom : true }, 'telephones').query;
+
+        const addressQuery = db.read.columns([ 'contactAddresses.contactId', 'addressId', 'country', 'state', 'city', 'streetAddress', 'streetAddressLine2', 'pincode', 'poBox', 'type', 'ContactAddresses.createdAt', 'ContactAddresses.modifiedAt' ])
+                                .tables('ContactAddresses').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactAddresses.contactId' ]).where('ContactAddresses.contactId', '=', contactId).query;
+            
+        const addressesQuery = db.read.columns('array_to_json(array_agg(addresses)) addresses').subquery(addressQuery.query, addressQuery.params, { afterFrom : true }, 'addresses').query;
+
+        const noteQuery = db.read.columns([ 'ContactNotes.contactId', 'noteId', 'content', 'ContactNotes.createdAt', 'ContactNotes.modifiedAt' ])
+                            .tables('ContactNotes').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactNotes.contactId' ]).where('ContactNotes.contactId', '=', contactId).query;
+
+        const notesQuery = db.read.columns('array_to_json(array_agg(notes)) notes').subquery(noteQuery.query, noteQuery.params, { afterFrom : true }, 'notes').query;
+            
+        const emailAddressQuery = db.read.columns([ 'ContactEmailAddresses.contactId', 'emailAddressId', 'email', 'ContactEmailAddresses.createdAt', 'ContactEmailAddresses.modifiedAt' ])
+                                    .tables('ContactEmailAddresses').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactEmailAddresses.contactId' ]).where('ContactEmailAddresses.contactId', '=', contactId).query;
+            
+        const emailAddressesQuery = db.read.columns('array_to_json(array_agg(emailAddresses)) emailAddresses').subquery(emailAddressQuery.query, emailAddressQuery.params, { afterFrom : true }, 'emailAddresses').query;
+            
+        const websiteQuery = db.read.columns([ 'ContactWebsites.contactId', 'websiteId', 'websiteName', 'ContactWebsites.createdAt', 'ContactWebsites.modifiedAt' ])
+                                .tables('ContactWebsites').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactWebsites.contactId' ]).where('ContactWebsites.contactId', '=', contactId).query;
+                        
+        const websitesQuery = db.read.columns('array_to_json(array_agg(websites)) websites').subquery(websiteQuery.query, websiteQuery.params, { afterFrom : true }, 'websites').query;
+
+        const socialQuery = db.read.columns([ 'ContactSocials.contactId', 'socialId', 'whatsapp', 'facebook', 'twitter', 'snapchat' ])
+                                .tables('ContactSocials').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactSocials.contactId' ]).where('ContactSocials.contactId', '=',contactId).query;
+
+        const socialsQuery = db.read.columns('array_to_json(array_agg(socials)) socials').subquery(socialQuery.query, socialQuery.params, { afterFrom : true }, 'socials').query;
+            
+        const labelQuery = db.read.columns([ 'ContactLabels.contactId', 'ContactLabels.labelId', 'labelName', 'Labels.createdAt', 'Labels.modifiedAt' ])
+                            .tables('ContactLabels').join('INNER JOIN', 'Labels', [ 'Labels.labelId', 'ContactLabels.labelId' ]).where('Labels.userId', '=', userId).where('ContactLabels.contactId', '=', contactId).query;
+
+        const labelsQuery = db.read.columns('array_to_json(array_agg(labels)) labels').subquery(labelQuery.query, labelQuery.params, { afterFrom : true }, 'labels').query;
+
+        const fullQuery = db.read.columns('*').subquery(telephonesQuery.query, telephonesQuery.params,{ inColumn : true })
+                            .subquery(addressesQuery.query, addressesQuery.params, { inColumn : true })
+                            .subquery(notesQuery.query, notesQuery.params, { inColumn : true })
+                            .subquery(emailAddressesQuery.query, emailAddressesQuery.params, { inColumn : true })
+                            .subquery(websitesQuery.query, websitesQuery.params, { inColumn : true })
+                            .subquery(socialsQuery.query, socialsQuery.params, { inColumn : true })
+                            .subquery(labelsQuery.query, labelsQuery.params, { inColumn : true })
+                            .tables('Contacts').where('Contacts.userId', '=', userId).where('Contacts.contactId', '=', contactId);
+    
+        return fullQuery;
+    }
+
     // returns a specific contact which includes telephones, addresses, notes, emailAddresses, websites, socials and labels of a specific user using userId and contactId
     static async getContact(userId: number, contactId: number): Promise<Object> {
         try {
-            const queryString = `select row_to_json(contact, true) as contact
+            /* const queryString = `select row_to_json(contact, true) as contact
             from ( select *, 
              ( select array_to_json(array_agg(telephones), true) as telephones from ( select contactTelephones.contactId, telephoneId, number, countrycode, contactTelephones.createdAt, contactTelephones.modifiedAt from contacttelephones inner join contacts on contacts.contactid = contacttelephones.contactid where contacttelephones.contactid = $1 ) telephones ),
             
@@ -109,10 +158,55 @@ export default class Contact {
             
             ( SELECT array_to_json( array_agg(labels), true ) as labels FROM ( SELECT ContactLabels.contactId, ContactLabels.labelId, labelName, createdAt, modifiedAt FROM ContactLabels INNER JOIN Labels ON Labels.labelId = ContactLabels.labelId WHERE ContactLabels.contactId = $7 AND Labels.userId = $8 ) labels )
             
-            FROM Contacts WHERE Contacts.userId = $9 AND Contacts.contactId = $10  ) contact`;
+            FROM Contacts WHERE Contacts.userId = $9 AND Contacts.contactId = $10  ) contact`; */
 
-            const contactDetail = await pool.query(queryString, [contactId, contactId, contactId, contactId, contactId, contactId, contactId, userId, userId, contactId]);
+            /* const telephoneQuery = db.read.columns(['contactTelephones.contactId', 'telephoneId', 'number', 'countrycode', 'contactTelephones.createdAt', 'contactTelephones.modifiedAt'])
+                                    .tables('ContactTelephones').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactTelephones.contactId' ]).where('ContactTelephones.contactId', '=', contactId).query;
+            
+            const telephonesQuery = db.read.columns('array_to_json(array_agg(telephones)) telephones').subquery(telephoneQuery.query, telephoneQuery.params, { afterFrom : true }, 'telephones').query;
 
+            const addressQuery = db.read.columns([ 'contactAddresses.contactId', 'addressId', 'country', 'state', 'city', 'streetAddress', 'streetAddressLine2', 'pincode', 'poBox', 'type', 'ContactAddresses.createdAt', 'ContactAddresses.modifiedAt' ])
+                                    .tables('ContactAddresses').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactAddresses.contactId' ]).where('ContactAddresses.contactId', '=', contactId).query;
+            
+            const addressesQuery = db.read.columns('array_to_json(array_agg(addresses)) addresses').subquery(addressQuery.query, addressQuery.params, { afterFrom : true }, 'addresses').query;
+
+            const noteQuery = db.read.columns([ 'ContactNotes.contactId', 'noteId', 'content', 'ContactNotes.createdAt', 'ContactNotes.modifiedAt' ])
+                                .tables('ContactNotes').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactNotes.contactId' ]).where('ContactNotes.contactId', '=', contactId).query;
+
+            const notesQuery = db.read.columns('array_to_json(array_agg(notes)) notes').subquery(noteQuery.query, noteQuery.params, { afterFrom : true }, 'notes').query;
+            
+            const emailAddressQuery = db.read.columns([ 'ContactEmailAddresses.contactId', 'emailAddressId', 'email', 'ContactEmailAddresses.createdAt', 'ContactEmailAddresses.modifiedAt' ])
+                                        .tables('ContactEmailAddresses').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactEmailAddresses.contactId' ]).where('ContactEmailAddresses.contactId', '=', contactId).query;
+            
+            const emailAddressesQuery = db.read.columns('array_to_json(array_agg(emailAddresses)) emailAddresses').subquery(emailAddressQuery.query, emailAddressQuery.params, { afterFrom : true }, 'emailAddresses').query;
+            
+            const websiteQuery = db.read.columns([ 'ContactWebsites.contactId', 'websiteId', 'websiteName', 'ContactWebsites.createdAt', 'ContactWebsites.modifiedAt' ])
+                                    .tables('ContactWebsites').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactWebsites.contactId' ]).where('ContactWebsites.contactId', '=', contactId).query;
+                        
+            const websitesQuery = db.read.columns('array_to_json(array_agg(websites)) websites').subquery(websiteQuery.query, websiteQuery.params, { afterFrom : true }, 'websites').query;
+
+            const socialQuery = db.read.columns([ 'ContactSocials.contactId', 'socialId', 'whatsapp', 'facebook', 'twitter', 'snapchat' ])
+                                    .tables('ContactSocials').join('INNER JOIN', 'Contacts', [ 'Contacts.contactId', 'ContactSocials.contactId' ]).where('ContactSocials.contactId', '=',contactId).query;
+
+            const socialsQuery = db.read.columns('array_to_json(array_agg(socials)) socials').subquery(socialQuery.query, socialQuery.params, { afterFrom : true }, 'socials').query;
+            
+            const labelQuery = db.read.columns([ 'ContactLabels.contactId', 'ContactLabels.labelId', 'labelName', 'Labels.createdAt', 'Labels.modifiedAt' ])
+                                .tables('ContactLabels').join('INNER JOIN', 'Labels', [ 'Labels.labelId', 'ContactLabels.labelId' ]).where('Labels.userId', '=', userId).where('ContactLabels.contactId', '=', contactId).query;
+
+            const labelsQuery = db.read.columns('array_to_json(array_agg(labels)) labels').subquery(labelQuery.query, labelQuery.params, { afterFrom : true }, 'labels').query;
+
+            const fullQuery = await db.read.columns('*').subquery(telephonesQuery.query, telephonesQuery.params,{ inColumn : true })
+                                .subquery(addressesQuery.query, addressesQuery.params, { inColumn : true })
+                                .subquery(notesQuery.query, notesQuery.params, { inColumn : true })
+                                .subquery(emailAddressesQuery.query, emailAddressesQuery.params, { inColumn : true })
+                                .subquery(websitesQuery.query, websitesQuery.params, { inColumn : true })
+                                .subquery(socialsQuery.query, socialsQuery.params, { inColumn : true })
+                                .subquery(labelsQuery.query, labelsQuery.params, { inColumn : true })
+                                .tables('Contacts').where('Contacts.userId', '=', userId).where('Contacts.contactId', '=', contactId).get();
+
+            return fullQuery.rows; */
+            //const contactDetail = await pool.query(queryString, [contactId, contactId, contactId, contactId, contactId, contactId, contactId, userId, userId, contactId]);
+            const contactDetail =  await new Contact().getQuery(userId, contactId).get();
             return contactDetail.rows;
         } catch (err) {
             throw new Error(err);

@@ -62,11 +62,11 @@ class Label {
         });
     }
     // update an existing label
-    static update(userId, label) {
+    static update(userId, labelId, label) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 //const updatedLabel: number = (await db.update.table('Labels').update(label).where('labelId', '=', label.labelId).execute()).rowCount;
-                const updatedLabel = (yield db_1.pool.query('UPDATE Labels SET labelName = $1, modifiedAt = $2 WHERE userId = $3 AND labelId = $4', [label.labelName, label.modifiedAt, userId, label.labelId])).rowCount;
+                const updatedLabel = (yield db_1.pool.query('UPDATE Labels SET labelName = $1, modifiedAt = $2 WHERE userId = $3 AND labelId = $4', [label.labelName, label.modifiedAt, userId, labelId])).rowCount;
                 return (updatedLabel == 1) ? { message: 'Label updated successfully', result: true } : { message: 'Failed to update label', result: false };
             }
             catch (err) {

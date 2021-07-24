@@ -86,8 +86,8 @@ exports.router.get('/:contactId', verifyToken, (req, res) => __awaiter(void 0, v
 exports.router.post('/', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const contact = req.body.contact;
-        const { newContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels } = contactConstructor(contact);
-        const result = yield contact_class_1.default.createContact(newContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels);
+        const newContact = contactConstructor(contact);
+        const result = yield contact_class_1.default.createContact(newContact);
         res.json(result);
     }
     catch (err) {
@@ -171,10 +171,10 @@ function contactConstructor(contact, isUpdating) {
 exports.router.put('/:contactId', verifyToken, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const contactId = +req.params.contactId;
-        //const userId: number = res.locals.user.subject;
+        const userId = res.locals.user.subject;
         const contact = req.body.contact;
-        const { newContact: updatedContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels } = contactConstructor(contact, true);
-        const result = yield contact_class_1.default.updateContact(contactId, updatedContact, contactTelephones, contactAddresses, contactEmailAddresses, contactNotes, contactSocials, contactWebsites, contactLabels);
+        const updatedContact = contactConstructor(contact, true);
+        const result = yield contact_class_1.default.updateContact(userId, contactId, updatedContact);
         res.json(result);
     }
     catch (err) {

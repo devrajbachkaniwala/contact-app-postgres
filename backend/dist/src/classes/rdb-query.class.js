@@ -16,6 +16,8 @@ class RDBQuery {
         this.__having = '';
         this.__join = '';
         this.__whereParams = [];
+        this.__subqueryList = [];
+        this.__isSubquery = true;
         this.__action = action;
         this.__config = config;
     }
@@ -26,33 +28,85 @@ class RDBQuery {
             fullQuery += this.__clause;
             fullQuery += this.__tables;
             fullQuery += this.__columns;
-            fullQuery += this.__newValues + ';';
+            for (let i = 0; i < this.__subqueryList.length; i++) {
+                const subquery = this.__subqueryList[i];
+                if (subquery.queryWhen.afterFrom) {
+                    // (this.__columns == '') ? '' : fullQuery += ' , ';
+                    fullQuery += ` ${subquery.query} `;
+                }
+            }
+            fullQuery += (this.__subqueryList.length) ? '' : this.__newValues + ';';
+        }
+        else if (this.__action == 'UPDATE') {
+            fullQuery += this.__action;
+            fullQuery += this.__tables;
+            //fullQuery += (this.__subqueryList.length) ? '' : '';
+            fullQuery += (this.__subqueryList.length) ? '' : this.__set;
+            for (let i = 0; i < this.__subqueryList.length; i++) {
+                const subquery = this.__subqueryList[i];
+                if (subquery.queryWhen.afterFrom) {
+                    const columnList = this.__columns.split(' ');
+                    columnList.unshift(' ( ');
+                    columnList.push(' ) = ');
+                    const columnQuery = columnList.join(' ');
+                    fullQuery += columnQuery;
+                    // (this.__columns == '') ? '' : fullQuery += ' , ';
+                    fullQuery += ` ${subquery.query} `;
+                }
+            }
+            fullQuery += this.__where;
         }
         else {
             fullQuery += this.__action;
             fullQuery += this.__clause;
             fullQuery += this.__columns;
+            for (let i = 0; i < this.__subqueryList.length; i++) {
+                const subquery = this.__subqueryList[i];
+                if (subquery.queryWhen.inColumn) {
+                    (this.__columns == '') ? '' : fullQuery += ' , ';
+                    fullQuery += ` ${subquery.query} `;
+                }
+            }
+            fullQuery += (this.__action == 'SELECT') ? ' FROM ' : '';
+            for (let i = 0; i < this.__subqueryList.length; i++) {
+                const subquery = this.__subqueryList[i];
+                if (subquery.queryWhen.afterFrom) {
+                    fullQuery += ` ${subquery.query} `;
+                }
+            }
             fullQuery += this.__tables;
             fullQuery += this.__set;
             fullQuery += this.__join;
             fullQuery += this.__where;
+            for (let i = 0; i < this.__subqueryList.length; i++) {
+                const subquery = this.__subqueryList[i];
+                if (subquery.queryWhen.afterWhere) {
+                    fullQuery += ` ${subquery.query} `;
+                }
+            }
             fullQuery += this.__groupBy;
             fullQuery += this.__having;
             fullQuery += this.__orderBy;
         }
+        this.__isSubquery = false;
         return { query: fullQuery, params: this.__whereParams };
     }
     // execute the query
     _execute() {
+        RDBQuery.__whereParamsLength = 0;
         const pool = new pg_1.Pool(this.__config);
         return pool.query(this.query.query, this.query.params);
     }
     // giving necessary condition
-    _where(param, condition, value = null, isOr = false) {
+    _where(param, condition, value = null, isOr = false, isSubquery = false) {
         if (this.__where.length > 0) {
             this.__where += isOr ? ' OR ' : ' AND ';
         }
         (this.__where.length == 0) ? this.__where += ' WHERE ' : this.__where += '';
+        if (isSubquery) {
+            this.__where += `${param} ${condition}`;
+            return this;
+        }
         if (value == null) {
             if (!(condition == 'IS NULL' || condition == 'IS NOT NULL')) {
                 throw new Error('Value should not be empty');
@@ -67,6 +121,7 @@ class RDBQuery {
                     if (value.length == 2) {
                         this.__whereParams.push(value.shift());
                         this.__whereParams.push(value.shift());
+                        (this.__isSubquery) ? RDBQuery.__whereParamsLength += 2 : '';
                     }
                     else if (value.length == 0) {
                         throw new Error('Value should contain two values');
@@ -76,34 +131,63 @@ class RDBQuery {
                     }
                 }
                 console.log(this.__whereParams);
-                (condition == 'BETWEEN') ? this.__where += `${param} ${condition} $${this.__whereParams.length - 1} AND $${this.__whereParams.length}` : '';
-                (condition == 'NOT BETWEEN') ? this.__where += `${param} ${condition} $${this.__whereParams.length - 1} AND $${this.__whereParams.length}` : '';
+                (condition == 'BETWEEN') ? this.__where += `${param} ${condition} $${(this.__isSubquery) ? RDBQuery.__whereParamsLength - 1 : this.__whereParams.length - 1} AND $${(this.__isSubquery) ? RDBQuery.__whereParamsLength : this.__whereParams.length}` : '';
+                (condition == 'NOT BETWEEN') ? this.__where += `${param} ${condition} $${(this.__isSubquery) ? RDBQuery.__whereParamsLength - 1 : this.__whereParams.length - 1} AND $${(this.__isSubquery) ? RDBQuery.__whereParamsLength : this.__whereParams.length}` : '';
             }
             if (condition == 'IN' || condition == 'NOT IN') {
                 if (typeof value == 'object') {
                     if (value.length == 0) {
                         throw new Error('Value should contain at least one value');
                     }
-                    while (value.length != 0) {
-                        this.__whereParams.push(value.shift());
+                    for (let i = 0; i < value.length; i++) {
+                        this.__whereParams.push(value[i]);
+                        (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
                     }
                 }
                 else {
                     value = [value];
-                    this.__whereParams.push(value.shift());
+                    this.__whereParams.push(value[0]);
+                    (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
                 }
                 if (condition == 'IN') {
                     if (typeof value == 'object') {
-                        let index = this.__whereParams.map((val, i) => i += 1);
-                        let inQuery = `( $${index.join(', $')} ) `;
-                        this.__where += `${param} ${condition} ${inQuery}`;
+                        if (this.__isSubquery) {
+                            let valueLength = value.length;
+                            let totalLength = RDBQuery.__whereParamsLength;
+                            let index = [];
+                            let currentIndex = totalLength - valueLength;
+                            for (let i = 0; i < valueLength; i++) {
+                                index.push(++currentIndex);
+                            }
+                            //let index = this.__whereParams.map( (val, i) => i += 1);
+                            let inQuery = `( $${index.join(', $')} ) `;
+                            this.__where += `${param} ${condition} ${inQuery}`;
+                        }
+                        else {
+                            let index = this.__whereParams.map((val, i) => i += 1);
+                            let inQuery = `( $${index.join(', $')} ) `;
+                            this.__where += `${param} ${condition} ${inQuery}`;
+                        }
                     }
                 }
                 if (condition == 'NOT IN') {
                     if (typeof value == 'object') {
-                        let index = this.__whereParams.map((val, i) => i += 1);
-                        let inQuery = ` ( $${index.join(', $')} ) `;
-                        this.__where += `${param} ${condition} ${inQuery}`;
+                        if (this.__isSubquery) {
+                            let valueLength = value.length;
+                            let totalLength = RDBQuery.__whereParamsLength;
+                            let index = [];
+                            let currentIndex = totalLength - valueLength;
+                            for (let i = 0; i < valueLength; i++) {
+                                index.push(++currentIndex);
+                            }
+                            let inQuery = ` ( $${index.join(', $')} ) `;
+                            this.__where += `${param} ${condition} ${inQuery}`;
+                        }
+                        else {
+                            let index = this.__whereParams.map((val, i) => i += 1);
+                            let inQuery = ` ( $${index.join(', $')} ) `;
+                            this.__where += `${param} ${condition} ${inQuery}`;
+                        }
                     }
                 }
             }
@@ -118,6 +202,7 @@ class RDBQuery {
             if (typeof value == 'object') {
                 if (value.length == 1) {
                     this.__whereParams.push(value.shift());
+                    (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
                 }
                 else if (value.length == 0) {
                     throw new Error('Value should contain one value');
@@ -128,8 +213,9 @@ class RDBQuery {
             }
             else {
                 this.__whereParams.push(value);
+                (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
             }
-            this.__where += `${param} ${condition} $${this.__whereParams.length}`;
+            this.__where += `${param} ${condition} $${(this.__isSubquery) ? RDBQuery.__whereParamsLength : this.__whereParams.length}`;
         }
         return this;
     }
@@ -150,7 +236,7 @@ class RDBQuery {
             this.__columns += '(' + params.join(', ') + ') ';
         }
         else {
-            this.__columns += ' ' + params.join(', ') + ' FROM';
+            this.__columns += ' ' + params.join(', ') + ' ';
         }
         return this;
     }
@@ -162,6 +248,9 @@ class RDBQuery {
         if (this.__action == 'INSERT') {
             this.__tables += params.join(' ');
         }
+        else if (this.__action == 'UPDATE') {
+            this.__tables += ' ' + params.join(' ') + ' SET ';
+        }
         else {
             this.__tables += ' ' + params.join(', ');
         }
@@ -169,15 +258,17 @@ class RDBQuery {
     }
     //updating and setting the new value to the column
     _set(param, value) {
-        (this.__set.length == 0) ? this.__set += ' SET ' : this.__set += ', ';
+        (this.__set.length == 0) ? '' : this.__set += ', ';
         this.__whereParams.push(value);
-        this.__set += `${param} = $${this.__whereParams.length}`;
+        (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
+        this.__set += ` ${param} = $${(this.__isSubquery) ? RDBQuery.__whereParamsLength : this.__whereParams.length}`;
         return this;
     }
     //insert new values in the table
     _newValues(params) {
         while (params.length != 0) {
             this.__whereParams.push(params.shift());
+            (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
         }
         let index = this.__whereParams.map((val, i) => i += 1);
         this.__newValues += ` VALUES( $${index.join(', $')} )`;
@@ -200,7 +291,8 @@ class RDBQuery {
     //grouping column's condition
     _having(param, condition, value) {
         this.__whereParams.push(value);
-        this.__having += ` HAVING ${param} ${condition} $${this.__whereParams.length} `;
+        (this.__isSubquery) ? RDBQuery.__whereParamsLength += 1 : '';
+        this.__having += ` HAVING ${param} ${condition} $${(this.__isSubquery) ? RDBQuery.__whereParamsLength : this.__whereParams.length} `;
         return this;
     }
     //joining tables
@@ -212,6 +304,17 @@ class RDBQuery {
             throw new Error('Join table ON should contain only two values');
         }
         this.__join += ` ${condition} ${table2} ON (${on[0]} = ${on[1]}) `;
+        return this;
+    }
+    _subquery(query, queryParams, subqueryWhen, aliasName) {
+        let queryArray = query.split(' ');
+        queryArray.unshift('( ');
+        queryArray.push(' ) ');
+        queryArray.push(aliasName);
+        let queryString = queryArray.join(' ');
+        this.__isSubquery = true;
+        this.__whereParams = [...this.__whereParams, ...queryParams];
+        this.__subqueryList.push({ query: queryString, queryWhen: subqueryWhen });
         return this;
     }
     _simpleQuery(sql) {
@@ -287,6 +390,7 @@ class RDBQuery {
         }
     }
 }
+RDBQuery.__whereParamsLength = 0;
 class ReadQuery extends RDBQuery {
     constructor(action = 'SELECT', config) {
         super(action, config);
@@ -306,8 +410,8 @@ class ReadQuery extends RDBQuery {
         this._join(condition, table2, on);
         return this;
     }
-    where(param, condition, value, isOr) {
-        this._where(param, condition, value, isOr);
+    where(param, condition, value, isOr, isSubquery) {
+        this._where(param, condition, value, isOr, isSubquery);
         return this;
     }
     groupBy(params) {
@@ -320,6 +424,10 @@ class ReadQuery extends RDBQuery {
     }
     orderBy(param, order) {
         this._orderBy(param, order);
+        return this;
+    }
+    subquery(query, queryParams, subqueryWhen, aliasName) {
+        this._subquery(query, queryParams, subqueryWhen, aliasName);
         return this;
     }
     get() {
@@ -336,6 +444,11 @@ class WriteQuery extends RDBQuery {
     }
     table(param) {
         this._tables(param);
+        this._action('INSERT');
+        return this;
+    }
+    columns(params) {
+        this._columns(params);
         return this;
     }
     insert(data) {
@@ -345,9 +458,12 @@ class WriteQuery extends RDBQuery {
             cols.push(key);
             values.push(data[key]);
         }
-        this._action('INSERT');
         this._columns(cols);
         this._newValues(values);
+        return this;
+    }
+    subquery(query, queryParams, subqueryWhen, aliasName) {
+        this._subquery(query, queryParams, { afterFrom: subqueryWhen.afterColumn }, aliasName);
         return this;
     }
     execute() {
@@ -366,11 +482,19 @@ class UpdateQuery extends RDBQuery {
         this._tables(param);
         return this;
     }
+    columns(params) {
+        this._columns(params);
+        return this;
+    }
     update(data) {
         this._action('UPDATE');
         for (let key of Object.keys(data)) {
             this._set(key, data[key]);
         }
+        return this;
+    }
+    subquery(query, queryParams, subqueryWhen, aliasName) {
+        this._subquery(query, queryParams, { afterFrom: subqueryWhen.afterColumn }, aliasName);
         return this;
     }
     where(param, condition, value, isOr) {
@@ -394,8 +518,12 @@ class DeleteQuery extends RDBQuery {
         this._tables(param);
         return this;
     }
-    where(param, condition, value, isOr) {
-        this._where(param, condition, value, isOr);
+    where(param, condition, value, isOr, isSubquery) {
+        this._where(param, condition, value, isOr, isSubquery);
+        return this;
+    }
+    subquery(query, queryParams, subqueryWhen, aliasName) {
+        this._subquery(query, queryParams, { afterWhere: subqueryWhen.afterWhere }, aliasName);
         return this;
     }
     delete() {

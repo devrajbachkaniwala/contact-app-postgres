@@ -17,7 +17,7 @@ import { IContactNote } from "../interfaces/contact-note.interface";
 import { IContactSocial } from "../interfaces/contact-social.interface";
 import { IContactTelephone } from "../interfaces/contact-telephone.interface";
 import { IContactWebsite } from "../interfaces/contact-website.interface";
-import { IContact } from "../interfaces/contact.interface";
+import { IContact, IContactModel } from "../interfaces/contact.interface";
 import { ILabel } from "../interfaces/label.interface";
 
 export const router = Router();
@@ -38,7 +38,7 @@ export const router = Router();
 router.get('/', verifyToken, async (req, res) => {
     try {
         const userId: number = res.locals.user.subject;
-        const contacts = await Contact.listContacts(userId);
+        const contacts: Object = await Contact.listContacts(userId);
         res.json(contacts);
     } catch (err) {
         throw new Error(err);
@@ -58,7 +58,7 @@ router.get('/:contactId', verifyToken, async (req, res) => {
         const userId: number = res.locals.user.subject;
         const contactId: number = +req.params.contactId;
 
-        const contact = await Contact.getContact(userId, contactId);
+        const contact: Object = await Contact.getContact(userId, contactId);
         res.json(contact);
     } catch (err) {
         throw new Error(err);
@@ -74,7 +74,7 @@ router.get('/:contactId', verifyToken, async (req, res) => {
 */
 router.post('/', verifyToken, async (req, res) => {
     try {
-        const contact = req.body.contact;
+        const contact: IContactModel = req.body.contact;
         const newContact = contactConstructor(contact);
 
         const result = await Contact.createContact(newContact);
@@ -170,7 +170,7 @@ router.put('/:contactId', verifyToken, async (req, res) => {
     try {
         const contactId: number = +req.params.contactId;
         const userId: number = res.locals.user.subject;
-        const contact = req.body.contact;
+        const contact: IContactModel = req.body.contact;
         const updatedContact = contactConstructor(contact, true);
     
         const result = await Contact.updateContact(userId, contactId, updatedContact);
