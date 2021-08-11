@@ -111,42 +111,53 @@ function contactConstructor(contact, isUpdating) {
     let contactSocials = [];
     let contactWebsites = [];
     let contactLabels = [];
-    for (let i = 0; i < ((_a = contact.telephones) === null || _a === void 0 ? void 0 : _a.length); i++) {
+    let total = (_a = contact.telephones) === null || _a === void 0 ? void 0 : _a.length;
+    for (let i = 0; i < total; i++) {
         const telephones = contact.telephones[i];
         const telephone = new contact_class_1.ContactTelephoneModel(telephones.contactId, telephones.telephoneId, telephones.countryCode, telephones.number);
-        (isUpdating) ? telephone.modifiedat = new Date() : '';
+        switch (isUpdating) {
+            case true:
+                telephone.modifiedat = new Date();
+                break;
+        }
         contactTelephones.push(telephone);
     }
-    for (let i = 0; i < ((_b = contact.addresses) === null || _b === void 0 ? void 0 : _b.length); i++) {
+    total = (_b = contact.addresses) === null || _b === void 0 ? void 0 : _b.length;
+    for (let i = 0; i < total; i++) {
         const addresses = contact.addresses[i];
         const address = new contact_class_1.ContactAddressModel(addresses.contactId, addresses.addressId, addresses.country, addresses.state, addresses.city, addresses.streetAddress, addresses.streetAddressLine2, addresses.pincode, addresses.poBox, addresses.type);
         (isUpdating) ? address.modifiedat = new Date() : '';
         contactAddresses.push(address);
     }
-    for (let i = 0; i < ((_c = contact.emailAddresses) === null || _c === void 0 ? void 0 : _c.length); i++) {
+    total = (_c = contact.emailAddresses) === null || _c === void 0 ? void 0 : _c.length;
+    for (let i = 0; i < total; i++) {
         const emailAddresses = contact.emailAddresses[i];
         const emailAddress = new contact_class_1.ContactEmailAddressModel(emailAddresses.contactId, emailAddresses.emailAddressId, emailAddresses.email);
         (isUpdating) ? emailAddress.modifiedat = new Date() : '';
         contactEmailAddresses.push(emailAddress);
     }
-    for (let i = 0; i < ((_d = contact.notes) === null || _d === void 0 ? void 0 : _d.length); i++) {
+    total = (_d = contact.notes) === null || _d === void 0 ? void 0 : _d.length;
+    for (let i = 0; i < total; i++) {
         const notes = contact.notes[i];
         const note = new contact_class_1.ContactNoteModel(notes.contactId, notes.noteId, notes.content);
         (isUpdating) ? note.modifiedat = new Date() : '';
         contactNotes.push(note);
     }
-    for (let i = 0; i < ((_e = contact.socials) === null || _e === void 0 ? void 0 : _e.length); i++) {
+    total = (_e = contact.socials) === null || _e === void 0 ? void 0 : _e.length;
+    for (let i = 0; i < total; i++) {
         const socials = contact.socials[i];
         const social = new contact_class_1.ContactSocialModel(socials.contactId, socials.socialId, socials.whatsapp, socials.facebook, socials.twitter, socials.snapchat);
         contactSocials.push(social);
     }
-    for (let i = 0; i < ((_f = contact.websites) === null || _f === void 0 ? void 0 : _f.length); i++) {
+    total = (_f = contact.websites) === null || _f === void 0 ? void 0 : _f.length;
+    for (let i = 0; i < total; i++) {
         const websites = contact.websites[i];
         const website = new contact_class_1.ContactWebsiteModel(websites.contactId, websites.websiteId, websites.websiteName);
         (isUpdating) ? website.modifiedat = new Date() : '';
         contactWebsites.push(website);
     }
-    for (let i = 0; i < ((_g = contact.labels) === null || _g === void 0 ? void 0 : _g.length); i++) {
+    total = (_g = contact.labels) === null || _g === void 0 ? void 0 : _g.length;
+    for (let i = 0; i < total; i++) {
         const labels = contact.labels[i];
         const contactLabel = new contact_class_1.ContactLabelModel(labels.contactId, labels.labelId);
         contactLabels.push(contactLabel);

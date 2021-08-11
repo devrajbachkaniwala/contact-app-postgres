@@ -75,6 +75,7 @@ router.get('/:contactId', verifyToken, async (req, res) => {
 router.post('/', verifyToken, async (req, res) => {
     try {
         const contact: IContactModel = req.body.contact;
+
         const newContact = contactConstructor(contact);
 
         const result = await Contact.createContact(newContact);
@@ -101,48 +102,59 @@ function contactConstructor(contact, isUpdating?: boolean) {
     let contactWebsites = [];
     let contactLabels = [];
 
-    for (let i = 0; i < contact.telephones?.length; i++) {
+    let total = contact.telephones?.length;
+    for (let i = 0; i < total; i++) {
         const telephones = contact.telephones[i];
         const telephone = new ContactTelephoneModel(telephones.contactId, telephones.telephoneId, telephones.countryCode, telephones.number);
-        ( isUpdating ) ? telephone.modifiedat = new Date() : '' ;
+        switch( isUpdating ) {
+            case true:
+                telephone.modifiedat = new Date();
+                break;
+        }
         contactTelephones.push(telephone);
     }
 
-    for (let i = 0; i < contact.addresses?.length; i++) {
+    total = contact.addresses?.length
+    for (let i = 0; i < total; i++) {
         const addresses = contact.addresses[i];
         const address = new ContactAddressModel(addresses.contactId, addresses.addressId, addresses.country, addresses.state, addresses.city, addresses.streetAddress, addresses.streetAddressLine2, addresses.pincode, addresses.poBox, addresses.type);
         ( isUpdating ) ? address.modifiedat = new Date() : '' ;
         contactAddresses.push(address);
     }
 
-    for (let i = 0; i < contact.emailAddresses?.length; i++) {
+    total = contact.emailAddresses?.length;
+    for (let i = 0; i < total; i++) {
         const emailAddresses = contact.emailAddresses[i];
         const emailAddress = new ContactEmailAddressModel(emailAddresses.contactId, emailAddresses.emailAddressId, emailAddresses.email);
         ( isUpdating ) ? emailAddress.modifiedat = new Date() : '' ;
         contactEmailAddresses.push(emailAddress);
     }
 
-    for (let i = 0; i < contact.notes?.length; i++) {
+    total = contact.notes?.length;
+    for (let i = 0; i < total; i++) {
         const notes = contact.notes[i];
         const note = new ContactNoteModel(notes.contactId, notes.noteId, notes.content);
         ( isUpdating ) ? note.modifiedat = new Date() : '' ;
         contactNotes.push(note);
     }
 
-    for (let i = 0; i < contact.socials?.length; i++) {
+    total = contact.socials?.length;
+    for (let i = 0; i < total; i++) {
         const socials = contact.socials[i];
         const social = new ContactSocialModel(socials.contactId, socials.socialId, socials.whatsapp, socials.facebook, socials.twitter, socials.snapchat);
         contactSocials.push(social);
     }
 
-    for (let i = 0; i < contact.websites?.length; i++) {
+    total = contact.websites?.length;
+    for (let i = 0; i < total; i++) {
         const websites = contact.websites[i];
         const website = new ContactWebsiteModel(websites.contactId, websites.websiteId, websites.websiteName);
         ( isUpdating ) ? website.modifiedat = new Date() : '' ;
         contactWebsites.push(website);
     }
 
-    for (let i = 0; i < contact.labels?.length; i++) {
+    total = contact.labels?.length;
+    for (let i = 0; i < total; i++) {
         const labels = contact.labels[i];
         const contactLabel = new ContactLabelModel(labels.contactId, labels.labelId);
         contactLabels.push(contactLabel);
